@@ -683,8 +683,8 @@
 			this.game.runData = this.game.runData || {};
 			this.game.runData.groundComplete = true;
 			this.game.runData.groundKills = this.kills;
-			this.game.runData.resumeFlight = true;
-			this.game.state.start('game');
+			this.game.runData.resumeFlight = false;
+			this.game.state.start('carrier');
 		},
 
 		endGroundGame: function () {

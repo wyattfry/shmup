@@ -188,8 +188,8 @@ state.game.runData = {};
 state.game.state = { start: function (name) { startedState = name; } };
 state.finishBoarding();
 assert.strictEqual(state.game.runData.groundComplete, true, 'boarding must complete the ground encounter');
-assert.strictEqual(state.game.runData.resumeFlight, true, 'boarding must request a return to flight');
-assert.strictEqual(startedState, 'game', 'the takeoff cutscene must return to the flight state');
+assert.strictEqual(state.game.runData.resumeFlight, false, 'boarding must finish flight progression before debrief');
+assert.strictEqual(startedState, 'carrier', 'boarding the recovered plane must start the carrier cutscene');
 
 var damageState = new GroundGame();
 damageState.health = groundPlayerHealth;

@@ -56,6 +56,7 @@ function uglifyTask() {
 		'src/js/class/cloud.js',
 
 		'src/js/ground.js',
+		'src/js/carrier.js',
 		'src/js/game.js',
 		'src/js/main.js'
 	 ];
