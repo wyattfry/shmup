@@ -16,6 +16,13 @@ var CarrierCutscene = context.window.firsttry.CarrierCutscene;
 var state = new CarrierCutscene();
 var shownLines = [];
 var missionComplete = false;
+var dialogueLines = state.getDialogueLines();
+
+dialogueLines.forEach(function (message) {
+	message.split('\n').forEach(function (line) {
+		assert.ok(line.length <= 34, 'every carrier dialogue row must fit inside the panel');
+	});
+});
 
 state.phase = 'dialogue';
 state.dialogueLines = ['ONE', 'TWO'];

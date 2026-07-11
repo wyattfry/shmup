@@ -145,12 +145,7 @@
 		beginDialogue: function () {
 
 			this.phase = 'dialogue';
-			this.dialogueLines = [
-				'GENERAL: PILOT, WE FOUND YOUR REPORT.',
-				'GENERAL: TWENTY HOSTILES, ONE ROCKET LAUNCHER...',
-				'GENERAL: AND YOU PARKED MY PLANE IN A SWAMP.',
-				'GENERAL: OUTSTANDING WORK. NEXT TIME, BRING IT BACK CLEAN.'
-			];
+			this.dialogueLines = this.getDialogueLines();
 			this.dialogueIndex = 0;
 			this.dialoguePanel = this.add.graphics(24, this.game.height - 180);
 			this.dialoguePanel.beginFill(0x050505, 0.92);
@@ -160,6 +155,16 @@
 			this.dialogueText = this.add.bitmapText(42, this.game.height - 156, 'minecraftia', '');
 			this.dialogueText.scale.setTo(CONFIG.PIXEL_RATIO / 3, CONFIG.PIXEL_RATIO / 3);
 			this.advanceDialogue();
+		},
+
+		getDialogueLines: function () {
+
+			return [
+				'GENERAL:\nPILOT, WE FOUND YOUR REPORT.',
+				'GENERAL:\nTWENTY HOSTILES. ONE ROCKET\nLAUNCHER...',
+				'GENERAL:\nAND YOU PARKED MY PLANE\nIN A SWAMP.',
+				'GENERAL:\nOUTSTANDING WORK. NEXT TIME,\nBRING IT BACK CLEAN.'
+			];
 		},
 
 		advanceDialogue: function () {
