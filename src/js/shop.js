@@ -12,6 +12,7 @@
 
 		create: function () {
 			var id, definition, colors = CONFIG.PLAYER_COLORS || [], i;
+			this.resetViewState();
 			this.stage.backgroundColor = '#10141a';
 			this.progress = window.firsttry.Progress.load(this.game);
 			this.titleText = this.add.bitmapText(0, 30, 'minecraftia', 'SHOP');
@@ -45,6 +46,11 @@
 				escape: this.input.keyboard.addKey(Phaser.Keyboard.ESC)
 			};
 			this.refresh();
+		},
+
+		resetViewState: function () {
+			this.rows = [];
+			this.selection = 0;
 		},
 
 		addRow: function (type, id, definition, y) {

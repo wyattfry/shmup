@@ -26,6 +26,18 @@ shop.game = { state: { start: function (name) { started = name; } } };
 shop.goBack();
 assert.strictEqual(started, 'home', 'shop BACK must return to the main menu');
 
+shop.rows = [{ stale: true }];
+shop.selection = 6;
+shop.resetViewState();
+assert.strictEqual(shop.rows.length, 0, 're-entering the shop must discard stale destroyed rows');
+assert.strictEqual(shop.selection, 0, 're-entering the shop must reset keyboard selection');
+
+home.items = [{ stale: true }];
+home.selection = 1;
+home.resetViewState();
+assert.strictEqual(home.items.length, 0, 're-entering home must discard stale destroyed commands');
+assert.strictEqual(home.selection, 0, 're-entering home must reset keyboard selection');
+
 var preloaderSource = fs.readFileSync('src/js/preloader.js', 'utf8');
 var groundSource = fs.readFileSync('src/js/ground.js', 'utf8');
 var carrierSource = fs.readFileSync('src/js/carrier.js', 'utf8');

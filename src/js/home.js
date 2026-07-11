@@ -12,6 +12,7 @@
 
 		create: function () {
 			var progress = window.firsttry.Progress.load(this.game);
+			this.resetViewState();
 			this.stage.backgroundColor = '#071018';
 			this.titleText = this.add.bitmapText(0, 100, 'minecraftia', 'GUNNER');
 			this.titleText.scale.setTo(CONFIG.PIXEL_RATIO * 1.2, CONFIG.PIXEL_RATIO * 1.2);
@@ -28,6 +29,11 @@
 				w: this.input.keyboard.addKey(Phaser.Keyboard.W)
 			};
 			this.updateSelection();
+		},
+
+		resetViewState: function () {
+			this.items = [];
+			this.selection = 0;
 		},
 
 		createCommand: function (label, y, action) {
