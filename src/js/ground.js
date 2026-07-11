@@ -500,9 +500,10 @@
 			if (this.health <= 0) {
 				this.endGroundGame();
 			} else {
+				this.player.revive();
 				this.player.visible = true;
-				this.player.exists = true;
-				this.player.alive = true;
+				this.player.renderable = true;
+				this.player.alpha = 1;
 			}
 			this.updateHUD();
 		},

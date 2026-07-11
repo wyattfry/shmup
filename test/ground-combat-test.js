@@ -141,6 +141,13 @@ damageState.player = {
 	visible: true,
 	exists: true,
 	alive: true,
+	reviveCount: 0,
+	revive: function () {
+		this.reviveCount += 1;
+		this.visible = true;
+		this.exists = true;
+		this.alive = true;
+	},
 	body: { velocity: { setTo: function () {} } }
 };
 damageState.game = {
@@ -157,6 +164,7 @@ assert.strictEqual(damageState.health, 9, 'one bullet hit must remove exactly on
 assert.strictEqual(damageState.player.visible, true, 'one bullet hit must not hide the player');
 assert.strictEqual(damageState.player.exists, true, 'one bullet hit must not remove the player');
 assert.strictEqual(damageState.player.alive, true, 'one bullet hit must not kill the player');
+assert.strictEqual(damageState.player.reviveCount, 1, 'a surviving player must be restored through Phaser revive');
 for (var hit = 1; hit < 9; hit++) {
 	hitPlayerAt(1000 + hit * 800);
 }
