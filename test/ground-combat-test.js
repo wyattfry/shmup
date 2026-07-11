@@ -165,6 +165,18 @@ assert.strictEqual(damageState.player.visible, true, 'one bullet hit must not hi
 assert.strictEqual(damageState.player.exists, true, 'one bullet hit must not remove the player');
 assert.strictEqual(damageState.player.alive, true, 'one bullet hit must not kill the player');
 assert.strictEqual(damageState.player.reviveCount, 1, 'a surviving player must be restored through Phaser revive');
+
+damageState.player.visible = false;
+damageState.player.exists = false;
+damageState.player.alive = false;
+damageState.player.renderable = false;
+damageState.player.alpha = 0;
+damageState.ensurePlayerVisible();
+assert.strictEqual(damageState.player.visible, true, 'an active player hidden after damage must be restored');
+assert.strictEqual(damageState.player.exists, true, 'an active player removed after damage must exist again');
+assert.strictEqual(damageState.player.alive, true, 'an active player removed after damage must be alive again');
+assert.strictEqual(damageState.player.renderable, true, 'an active player must remain renderable');
+assert.strictEqual(damageState.player.alpha, 1, 'an active player must remain opaque');
 for (var hit = 1; hit < 9; hit++) {
 	hitPlayerAt(1000 + hit * 800);
 }

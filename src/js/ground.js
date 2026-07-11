@@ -262,6 +262,7 @@
 				return;
 			}
 
+			this.ensurePlayerVisible();
 			this.updatePlayerMovement();
 			if (this.keys.space.isDown) {
 				this.fireRifle();
@@ -500,12 +501,21 @@
 			if (this.health <= 0) {
 				this.endGroundGame();
 			} else {
+				this.ensurePlayerVisible();
+			}
+			this.updateHUD();
+		},
+
+		ensurePlayerVisible: function () {
+
+			if (this.mode !== 'play' || this.health <= 0) { return; }
+			if (!this.player.visible || !this.player.exists || !this.player.alive ||
+					!this.player.renderable || this.player.alpha <= 0) {
 				this.player.revive();
 				this.player.visible = true;
 				this.player.renderable = true;
 				this.player.alpha = 1;
 			}
-			this.updateHUD();
 		},
 
 		revealPlane: function () {
