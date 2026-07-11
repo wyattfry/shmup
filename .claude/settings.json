@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git commit -q -m 'Add GitHub Pages deploy workflow and local game changes *)"
+    ]
+  }
+}

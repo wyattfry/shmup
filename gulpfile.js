@@ -29,8 +29,10 @@ function cleanTask() {
 }
 
 function copyTask() {
-	return gulp.src(paths.assets)
-		.pipe(gulp.dest(paths.dist + 'assets'))
+	// gulp 5 (vinyl-fs 4) decodes files as UTF-8 by default, which corrupts
+	// binary assets (PNG/audio). encoding:false keeps them as raw buffers.
+	return gulp.src(paths.assets, {encoding: false})
+		.pipe(gulp.dest(paths.dist + 'assets', {encoding: false}))
 		.on('error', gutil.log);
 }
 
