@@ -293,7 +293,11 @@
 				y /= length;
 				this.facing.x = x;
 				this.facing.y = y;
-				this.player.angle = Math.atan2(y, x) * 180 / Math.PI + 90;
+				if (x > 0) {
+					this.player.angle = 90;
+				} else if (x < 0) {
+					this.player.angle = -90;
+				}
 			}
 
 			this.player.body.velocity.x = x * speed;

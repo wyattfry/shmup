@@ -62,12 +62,24 @@ state.updatePlayerMovement();
 assert.ok(Math.abs(state.player.body.velocity.x - 98.9949) < 0.01, 'diagonal ground movement must be normalized');
 assert.ok(Math.abs(state.player.body.velocity.y + 98.9949) < 0.01, 'WASD must move in all directions');
 assert.ok(state.facing.x > 0 && state.facing.y < 0, 'the soldier must face the last movement direction');
-assert.strictEqual(state.player.angle, 45, 'the player soldier must turn toward diagonal movement');
+assert.strictEqual(state.player.angle, 90, 'pressing D must turn the player soldier fully right');
 
 state.keys.w.isDown = false;
 state.keys.d.isDown = false;
 state.updatePlayerMovement();
-assert.strictEqual(state.player.angle, 45, 'the player soldier must keep facing the last movement direction while idle');
+assert.strictEqual(state.player.angle, 90, 'the player soldier must keep facing right while idle');
+
+state.keys.a.isDown = true;
+state.updatePlayerMovement();
+assert.strictEqual(state.player.angle, -90, 'pressing A must turn the player soldier fully left');
+state.keys.a.isDown = false;
+state.keys.s.isDown = true;
+state.updatePlayerMovement();
+assert.strictEqual(state.player.angle, -90, 'vertical movement must keep the last horizontal facing');
+state.keys.s.isDown = false;
+state.keys.w.isDown = true;
+state.keys.d.isDown = true;
+state.updatePlayerMovement();
 
 state.game = { time: { now: 1000 } };
 state.playerBulletPool = {
