@@ -12,6 +12,9 @@
 
 	function Game() {
 		this.score = 0;
+		this.coins = 0;
+		this.planeKills = 0;
+		this.pendingGroundTransition = false;
 		this.player = null;
 		this.lastUpdate = 0;
 		this.delta = 0;
@@ -34,6 +37,8 @@
 			this.createWorld();
 			this.createGround();
 			this.scrollSpeed = CONFIG.SCROLL_SPEED;
+			this.createTroops();
+			this.seedInitialTroops();
 
 			var i, o;
 
@@ -69,7 +74,7 @@
 			// PLAYER
 
 			this.player = new window['firsttry'].Player(this);
-			this.score = 0;
+			this.restoreRunData();
 
 			this.game.camera.follow(this.player, Phaser.Camera.FOLLOW_PLATFORMER);
 			
@@ -101,6 +106,10 @@
 			this.guiText2 = this.add.bitmapText(0, 32, 'minecraftia', '');
 			this.guiText2.scale.setTo(CONFIG.PIXEL_RATIO / 4, CONFIG.PIXEL_RATIO / 4); 
 			this.guiText2.fixedToCamera = true;
+
+			this.guiCoinText = this.add.bitmapText(0, -5 * CONFIG.PIXEL_RATIO, 'minecraftia', '');
+			this.guiCoinText.scale.setTo(CONFIG.PIXEL_RATIO / 2, CONFIG.PIXEL_RATIO / 2);
+			this.guiCoinText.fixedToCamera = true;
 
 			this.updateGUI();
 		},
@@ -506,8 +515,12 @@
 
 		update: function () {
 
+			var powerupChanged;
+
 			this.delta = (this.game.time.now - this.lastUpdate) / 1000; //in seconds
 			this.lastUpdate = this.game.time.now;
+
+			powerupChanged = this.player.updatePowerup();
 
 			if (this.gameState !== this.STATE.preplay) {
 				// Enemy spawn
@@ -516,12 +529,233 @@
 
 			// Collisions
 			this.updateCollisions();
+			if (this.pendingGroundTransition) {
+				this.game.state.start('ground');
+				return;
+			}
 
 			// Cloud spawn
 			// this.updateCloudSpawn();
 
 			// Background
 			this.updateBackground(this.delta);
+			this.updateTroops(this.delta);
+
+			if (this.player.isInvulnerable || powerupChanged) {
+				this.updateGUI();
+			}
+		},
+
+		createTroops: function () {
+
+			var i, troop;
+
+			this.troopTextures = this.createTroopTextures();
+			this.troopPool = this.add.group();
+
+			for (i = 0; i < CONFIG.TROOPPOOL_SIZE; i++) {
+				troop = this.add.sprite(0, 0, this.troopTextures[0]);
+				troop.anchor.setTo(0.5, 0.5);
+				troop.scale.setTo(CONFIG.PIXEL_RATIO * 1.25, CONFIG.PIXEL_RATIO * 1.25);
+				troop.exists = false;
+				troop.alive = false;
+				this.troopPool.add(troop);
+			}
+		},
+
+		createTroopTextures: function () {
+
+			var textures = [],
+					bmd,
+					ctx,
+					i;
+
+			for (i = 0; i < 2; i++) {
+				bmd = this.add.bitmapData(12, 12);
+				ctx = bmd.ctx;
+				this.drawTroopFrame(ctx, 0, i);
+				bmd.dirty = true;
+				textures.push(bmd);
+			}
+
+			return textures;
+		},
+
+		drawTroopFrame: function (ctx, x, step) {
+
+			ctx.fillStyle = '#050505';
+			ctx.fillRect(x + 2, 0, 4, 3);
+			ctx.fillRect(x + 1, 2, 6, 7);
+			ctx.fillRect(x + 0, 4, 2, 6);
+			ctx.fillRect(x + 6, 4, 2, 6);
+			ctx.fillRect(x + 1 + step, 8, 3, 4);
+			ctx.fillRect(x + 4 - step, 8, 3, 4);
+			ctx.fillRect(x + 3, 5, 8, 2);
+			ctx.fillRect(x + 9, 4, 2, 2);
+			ctx.fillStyle = '#2f3f24';
+			ctx.fillRect(x + 3, 0, 2, 2);
+			ctx.fillStyle = '#8b6f45';
+			ctx.fillRect(x + 2, 2, 4, 2);
+			ctx.fillStyle = '#3f512d';
+			ctx.fillRect(x + 2, 4, 4, 4);
+			ctx.fillStyle = '#202916';
+			ctx.fillRect(x + 1, 5, 1, 4);
+			ctx.fillRect(x + 6, 4, 1, 2);
+			ctx.fillRect(x + 5, 5, 2, 1);
+			ctx.fillRect(x + 2 + step, 8, 1, 4);
+			ctx.fillRect(x + 5 - step, 8, 1, 4);
+			ctx.fillStyle = '#8b6f45';
+			ctx.fillRect(x + 4, 5, 1, 1);
+			ctx.fillRect(x + 6, 5, 1, 1);
+			ctx.fillStyle = '#5e4a2d';
+			ctx.fillRect(x + 3, 6, 3, 1);
+			ctx.fillRect(x + 5, 5, 3, 1);
+			ctx.fillStyle = '#1b1b1b';
+			ctx.fillRect(x + 7, 4, 5, 1);
+			ctx.fillRect(x + 10, 3, 1, 2);
+			ctx.fillStyle = '#8b6f45';
+			ctx.fillRect(x + 4, 5, 1, 2);
+			ctx.fillRect(x + 6, 5, 1, 2);
+		},
+
+		updateTroops: function (delta) {
+
+			if (!this.troopPool) {
+				return;
+			}
+
+			this.troopPool.forEachAlive(function (troop) {
+				if (this.time.now > troop.nextTurnAt) {
+					troop.walkSpeed = this.rnd.realInRange(-10, 10) * CONFIG.PIXEL_RATIO;
+					troop.nextTurnAt = this.time.now + this.rnd.integerInRange(1200, 2600);
+				}
+
+				if (this.time.now > troop.nextStepAt) {
+					troop.walkFrame = (troop.walkFrame + 1) % 2;
+					troop.loadTexture(this.troopTextures[troop.walkFrame]);
+					troop.nextStepAt = this.time.now + 250;
+				}
+
+				troop.x += troop.walkSpeed * delta;
+				troop.y += this.scrollSpeed * CONFIG.PIXEL_RATIO * delta;
+
+				if (troop.x < 8 * CONFIG.PIXEL_RATIO) {
+					troop.x = 8 * CONFIG.PIXEL_RATIO;
+					troop.walkSpeed = Math.abs(troop.walkSpeed);
+
+				} else if (troop.x > (CONFIG.WORLD_WIDTH * 24 - 8) * CONFIG.PIXEL_RATIO) {
+					troop.x = (CONFIG.WORLD_WIDTH * 24 - 8) * CONFIG.PIXEL_RATIO;
+					troop.walkSpeed = -Math.abs(troop.walkSpeed);
+				}
+
+				if (troop.y > CONFIG.GAME_HEIGHT * CONFIG.PIXEL_RATIO + 32) {
+					troop.kill();
+					return;
+				}
+
+				if (this.isForestAt(troop.x, troop.y)) {
+					troop.kill();
+				}
+			}, this);
+		},
+
+		isForestAt: function (x, y) {
+
+			var tileX = Math.floor(x / (24 * CONFIG.PIXEL_RATIO)),
+					tileY = Math.floor((y - this.ground.y) / (28 * CONFIG.PIXEL_RATIO)),
+					rowOffset;
+
+			if (tileX < 0 || tileX >= CONFIG.WORLD_WIDTH || tileY < 0 || tileY >= this.groundHeight) {
+				return false;
+			}
+
+			rowOffset = CONFIG.WORLD_HEIGHT - (this.groundHeight + this.scrollCounter) + tileY;
+
+			if (rowOffset < 0) {
+				rowOffset += CONFIG.WORLD_HEIGHT;
+			}
+
+			return this.terrainData[tileX][rowOffset] === 6;
+		},
+
+		updateTroopSpawn: function () {
+
+			var earthTiles = [],
+					i, j, rowOffset, nTroops, r;
+
+			if (!this.troopPool) {
+				return;
+			}
+
+			for (i = 0; i < CONFIG.WORLD_WIDTH; i++) {
+				for (j = 0; j < CONFIG.WORLD_SWAP_HEIGHT; j++) {
+					rowOffset = CONFIG.WORLD_HEIGHT - (this.groundHeight + this.scrollCounter) + j;
+
+					if (rowOffset < 0) {
+						rowOffset += CONFIG.WORLD_HEIGHT;
+					}
+
+					if (this.terrainData[i][rowOffset] === 6 || this.terrainData[i][rowOffset] === 21) {
+						earthTiles.push([i, j]);
+					}
+				}
+			}
+
+			nTroops = this.rnd.integerInRange(2, 5);
+
+			for (i = 0; i < nTroops && earthTiles.length > 0 && this.troopPool.countDead() > 0; i++) {
+				r = this.rnd.integerInRange(0, earthTiles.length - 1);
+				this.spawnTroop(earthTiles[r][0], earthTiles[r][1] - CONFIG.WORLD_SWAP_HEIGHT);
+				earthTiles.remove(r);
+			}
+		},
+
+		seedInitialTroops: function () {
+
+			var earthTiles = [],
+					i, j, rowOffset, tileY, nTroops, r;
+
+			for (i = 0; i < CONFIG.WORLD_WIDTH; i++) {
+				for (j = 0; j < this.groundHeight; j++) {
+					tileY = this.ground.y + j * 28 * CONFIG.PIXEL_RATIO;
+
+					if (tileY > -28 * CONFIG.PIXEL_RATIO && tileY < CONFIG.GAME_HEIGHT * CONFIG.PIXEL_RATIO) {
+						rowOffset = CONFIG.WORLD_HEIGHT - (this.groundHeight + this.scrollCounter) + j;
+
+						if (rowOffset < 0) {
+							rowOffset += CONFIG.WORLD_HEIGHT;
+						}
+
+						if (this.terrainData[i][rowOffset] === 6 || this.terrainData[i][rowOffset] === 21) {
+							earthTiles.push([i, j + this.ground.y / (28 * CONFIG.PIXEL_RATIO)]);
+						}
+					}
+				}
+			}
+
+			nTroops = this.rnd.integerInRange(8, 12);
+
+			for (i = 0; i < nTroops && earthTiles.length > 0 && this.troopPool.countDead() > 0; i++) {
+				r = this.rnd.integerInRange(0, earthTiles.length - 1);
+				this.spawnTroop(earthTiles[r][0], earthTiles[r][1]);
+				earthTiles.remove(r);
+			}
+		},
+
+		spawnTroop: function (tileX, tileY) {
+
+			var troop = this.troopPool.getFirstExists(false);
+
+			troop.reset(
+				(tileX + this.rnd.realInRange(0.25, 0.75)) * 24 * CONFIG.PIXEL_RATIO,
+				(tileY + this.rnd.realInRange(0.35, 0.75)) * 28 * CONFIG.PIXEL_RATIO
+				);
+			troop.alpha = this.rnd.realInRange(0.8, 1);
+			troop.walkSpeed = this.rnd.realInRange(-10, 10) * CONFIG.PIXEL_RATIO;
+			troop.walkFrame = this.rnd.integerInRange(0, 1);
+			troop.nextTurnAt = this.time.now + this.rnd.integerInRange(800, 2400);
+			troop.nextStepAt = this.time.now + this.rnd.integerInRange(0, 250);
+			troop.loadTexture(this.troopTextures[troop.walkFrame]);
 		},
 
 		updateEnemySpawn: function () {
@@ -617,6 +851,7 @@
 			for (i = 0; i < this.mobPools.length; i++) {
 				// Player bullets VS ennemy mobs
 				this.physics.arcade.overlap(this.player.bulletPool, this.mobPools[i], this.bulletVSmob, null, this);
+				this.physics.arcade.overlap(this.player.rocketPool, this.mobPools[i], this.bulletVSmob, null, this);
 
 				// Player VS ennemy mobs
 				this.physics.arcade.overlap(this.player, this.mobPools[i], this.playerVSmob, null, this);
@@ -627,6 +862,7 @@
 			for (i = 0; i < this.mobPoolsGround.length; i++) {
 				// Player bullets VS ennemy mobs
 				this.physics.arcade.overlap(this.player.bulletPool, this.mobPoolsGround[i], this.bulletVSmob, null, this);
+				this.physics.arcade.overlap(this.player.rocketPool, this.mobPoolsGround[i], this.bulletVSmob, null, this);
 			}
 
 			// Player VS ennemy bullets
@@ -640,16 +876,142 @@
 
 		bulletVSmob: function (bullet, mob) {
 
+			var isRocket = bullet.isRocket,
+					mobDefeated = false;
+
 			bullet.kill();
-			mob.takeDamage(this.player.strength / 5);	// TODO: constant
+			mob.takeDamage(bullet.projectileDamage || this.player.strength / 5);	// TODO: constant
 
 			if (mob.health <= 0) {
-				mob.die();
-				this.explode(mob);
+				this.defeatMob(mob);
+				mobDefeated = true;
+			}
 
-				this.score += mob.points;
+			if (isRocket) {
+				this.detonateRocket(bullet, mob);
+			}
+
+			if (mobDefeated || isRocket) {
 				this.updateGUI();
 			}
+		},
+
+		defeatMob: function (mob) {
+
+			if (mob instanceof window['firsttry'].Flagship) {
+				this.showPilotText(mob, 'NOOOOOOOOOO');
+			}
+
+			mob.health = 0;
+			mob.die();
+			this.explode(mob);
+			this.score += mob.points;
+			this.coins += mob.coinReward || 0;
+
+			if (window['firsttry'].Plane && mob instanceof window['firsttry'].Plane) {
+				this.recordPlaneKill();
+			}
+		},
+
+		recordPlaneKill: function () {
+
+			this.planeKills += 1;
+
+			if (this.planeKills >= CONFIG.GROUND_TRIGGER_PLANE_KILLS &&
+					!this.pendingGroundTransition &&
+					!(this.game.runData && this.game.runData.groundComplete)) {
+				this.saveRunData();
+				this.pendingGroundTransition = true;
+			}
+		},
+
+		saveRunData: function () {
+
+			this.game.runData = this.game.runData || {};
+			this.game.runData.score = this.score;
+			this.game.runData.coins = this.coins;
+			this.game.runData.planeKills = this.planeKills;
+			this.game.runData.flightHealth = this.player.health;
+			this.game.runData.playerStats = {
+				health: this.player.playerStats.health,
+				speed: this.player.playerStats.speed,
+				accel: this.player.playerStats.accel,
+				strength: this.player.playerStats.strength,
+				rate: this.player.playerStats.rate
+			};
+		},
+
+		restoreRunData: function () {
+
+			var runData = this.game.runData,
+					stat;
+
+			if (!runData || !runData.resumeFlight) {
+				this.score = 0;
+				this.coins = 0;
+				this.planeKills = 0;
+				this.game.runData = null;
+				return;
+			}
+
+			this.score = runData.score || 0;
+			this.coins = runData.coins || 0;
+			this.planeKills = runData.planeKills || 0;
+			for (stat in runData.playerStats) {
+				if (runData.playerStats.hasOwnProperty(stat)) {
+					this.player.playerStats[stat] = runData.playerStats[stat];
+				}
+			}
+			this.player.health = runData.flightHealth;
+			this.player.updateStats();
+			runData.resumeFlight = false;
+		},
+
+		detonateRocket: function (rocket, directTarget) {
+
+			var radius = CONFIG.ROCKET_AOE_RADIUS * CONFIG.PIXEL_RATIO,
+					radiusSquared = radius * radius,
+					maxTargets = CONFIG.ROCKET_AOE_MAX_TARGETS,
+					victims = 0,
+					poolSets = [this.mobPools, this.mobPoolsGround],
+					i,
+					j;
+
+			for (i = 0; i < poolSets.length && victims < maxTargets; i++) {
+				for (j = 0; j < poolSets[i].length && victims < maxTargets; j++) {
+					victims += this.damageMobsInRocketAOE(
+						poolSets[i][j], rocket, directTarget, radiusSquared, maxTargets - victims
+					);
+				}
+			}
+
+			if (this.player.alive !== false &&
+					Math.pow(this.player.x - rocket.x, 2) + Math.pow(this.player.y - rocket.y, 2) <= radiusSquared) {
+				this.playerVSenemy(this.player, CONFIG.ROCKET_PLAYER_DAMAGE);
+			}
+
+			return victims;
+		},
+
+		damageMobsInRocketAOE: function (pool, rocket, directTarget, radiusSquared, maxTargets) {
+
+			var victims = 0;
+
+			pool.forEachAlive(function (mob) {
+				var distanceSquared;
+
+				if (victims >= maxTargets || mob === directTarget) {
+					return;
+				}
+
+				distanceSquared = Math.pow(mob.x - rocket.x, 2) + Math.pow(mob.y - rocket.y, 2);
+				if (distanceSquared <= radiusSquared) {
+					this.defeatMob(mob);
+					victims += 1;
+				}
+			}, this);
+
+			return victims;
 		},
 
 		playerVSmob: function (player, mob) {
@@ -667,9 +1029,16 @@
 			this.playerVSenemy(player);
 		},
 
-		playerVSenemy: function (player) {
+		playerVSenemy: function (player, damage) {
 
-			player.takeDamage(10); 
+			damage = damage || 10;
+
+			if (player.isInvulnerable) {
+				this.updateGUI();
+				return;
+			}
+
+			player.takeDamage(damage); 
 
 			if (player.health <= 0) {
 				player.kill();
@@ -696,9 +1065,10 @@
 
 		// TODO : mob method
 		explode: function (thing) {
-			var explosion = this.add.sprite(thing.x, thing.y, 'explosion_1');
+			var explosion = this.add.sprite(thing.x, thing.y, 'explosion_1'),
+					explosionScale = thing.explosionScale || 1;
 			explosion.anchor.setTo(0.5, 0.5);
-			explosion.scale.setTo(CONFIG.PIXEL_RATIO, CONFIG.PIXEL_RATIO);
+			explosion.scale.setTo(CONFIG.PIXEL_RATIO * explosionScale, CONFIG.PIXEL_RATIO * explosionScale);
 			explosion.animations.add('boom', [ 0, 1, 2, 3, 4 ], 30, false);
 			explosion.play('boom', 15, false, true);			
 		},
@@ -722,8 +1092,29 @@
 			gui += 'SPD ' + this.player.playerStats.speed + '\n';
 			gui += 'ACC ' + this.player.playerStats.accel + '\n';
 
+			if (this.player.isInvulnerable) {
+				gui += 'PWR ' + Math.ceil((this.player.powerupExpiresAt - this.time.now) / 1000) + '\n';
+			}
+
 			this.guiText1.setText(this.score + '');
 			this.guiText2.setText(gui);
+			this.guiCoinText.setText('COINS ' + this.coins);
+			this.guiCoinText.x = this.game.width - this.guiCoinText.textWidth * this.guiCoinText.scale.x - 8 * CONFIG.PIXEL_RATIO;
+			this.guiCoinText.cameraOffset.x = this.guiCoinText.x;
+		},
+
+		showPilotText: function (mob, text) {
+
+			var pilotText = this.add.bitmapText(mob.x, mob.y - 24 * CONFIG.PIXEL_RATIO, 'minecraftia', text);
+			pilotText.scale.setTo(CONFIG.PIXEL_RATIO / 3, CONFIG.PIXEL_RATIO / 3);
+			pilotText.x -= pilotText.textWidth * pilotText.scale.x / 2;
+
+			this.add.tween(pilotText).to({
+				y: pilotText.y - 24 * CONFIG.PIXEL_RATIO,
+				alpha: 0
+			}, 900, Phaser.Easing.Linear.None, true).onComplete.add(function () {
+				pilotText.destroy();
+			});
 		},
 
 		updateBackground: function (delta) {
@@ -749,6 +1140,7 @@
 				}
 
 				this.drawGround();
+				this.updateTroopSpawn();
 
 				if (this.gameState !== this.STATE.preplay) {
 					this.updateEnemySpawnGround();
@@ -778,6 +1170,11 @@
 		onInputDown: function () {
 
 			this.game.state.start('menu');
+		},
+
+		shutdown: function () {
+
+			this.input.onDown.remove(this.onInputDown, this);
 		},
 
 		// RENDER

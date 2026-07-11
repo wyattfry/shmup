@@ -18,12 +18,25 @@
 		this.state = state;
 		this.game = state.game;
 
-		this.playerClass = this.game.rnd.between(1, 4);
-		this.playerStats = CONFIG.CLASS_STATS[this.playerClass - 1];
-		this.classStats = this.playerStats;
+		this.playerClass = this.game.selectedPlayerClass || 1;
+		if (this.playerClass < 1 || this.playerClass > CONFIG.CLASS_STATS.length) {
+			this.playerClass = 1;
+		}
+
+		this.classStats = CONFIG.CLASS_STATS[this.playerClass - 1];
+		this.playerStats = {
+			className: this.classStats.className,
+			health: this.classStats.health,
+			speed: this.classStats.speed,
+			accel: this.classStats.accel,
+			strength: this.classStats.strength,
+			rate: this.classStats.rate
+		};
 
 		// Phaser.Sprite.call(this, this.game, 0, 0, 'player_' + this.playerClass);
 		window['firsttry'].Mob.call(this, state, 'player_' + this.playerClass);
+		this.baseTint = this.game.selectedPlayerColor || CONFIG.PLAYER_COLORS[0].tint;
+		this.tint = this.baseTint;
 
 		this.body.setSize(7 * CONFIG.PIXEL_RATIO, 7 * CONFIG.PIXEL_RATIO, 0, 3 * CONFIG.PIXEL_RATIO);
 
@@ -37,10 +50,13 @@
 		this.play('idle');
 
 		this.health = this.playerStats.health;
+		this.powerupExpiresAt = 0;
+		this.isInvulnerable = false;
 
 		this.updateStats();
 
 		this.nextShotAt = 0;
+		this.nextRocketAt = 0;
 		this.lastUpdate = 0;
 
 		this.game.add.existing(this);
@@ -48,6 +64,7 @@
 		// PLAYER BULLETS
 
 		this.createBulletPool();
+		this.createRocketPool();
 	}
 
 	Player.prototype = Object.create(window['firsttry'].Mob.prototype);
@@ -75,11 +92,63 @@
 		this.updateBulletPool();
 	};
 
+	Player.prototype.createRocketPool = function() {
+
+		var i,
+				rocket;
+
+		this.rocketTexture = this.createRocketTexture();
+		this.rocketPool = this.game.add.group();
+		this.rocketPool.enableBody = true;
+		this.rocketPool.physicsBodyType = Phaser.Physics.ARCADE;
+
+		for (i = 0; i < CONFIG.ROCKETPOOL_SIZE; i++) {
+			rocket = this.rocketPool.create(0, 0, this.rocketTexture);
+			rocket.anchor.setTo(0.5, 0.5);
+			rocket.scale.setTo(CONFIG.PIXEL_RATIO, CONFIG.PIXEL_RATIO);
+			rocket.outOfBoundsKill = true;
+			rocket.checkWorldBounds = true;
+			rocket.exists = false;
+			rocket.alive = false;
+			rocket.projectileDamage = CONFIG.ROCKET_DAMAGE;
+			rocket.isRocket = true;
+			rocket.target = null;
+			rocket.heading = -Math.PI / 2;
+			rocket.homingStartsAt = 0;
+			rocket.lastSteeringAt = 0;
+		}
+	};
+
+	Player.prototype.createRocketTexture = function() {
+
+		var bmd = this.game.add.bitmapData(8, 18),
+				ctx = bmd.ctx;
+
+		ctx.fillStyle = '#111111';
+		ctx.fillRect(2, 0, 4, 2);
+		ctx.fillRect(1, 2, 6, 11);
+		ctx.fillRect(0, 11, 8, 3);
+		ctx.fillStyle = '#dddddd';
+		ctx.fillRect(3, 1, 2, 2);
+		ctx.fillRect(2, 3, 4, 9);
+		ctx.fillStyle = '#cc2222';
+		ctx.fillRect(1, 10, 2, 4);
+		ctx.fillRect(5, 10, 2, 4);
+		ctx.fillStyle = '#ffaa00';
+		ctx.fillRect(2, 14, 4, 3);
+		ctx.fillStyle = '#ffff66';
+		ctx.fillRect(3, 15, 2, 3);
+		bmd.dirty = true;
+
+		return bmd;
+	};
+
 	Player.prototype.update = function() {
 
 		// Call the parent update function
 		window['firsttry'].Mob.prototype.update.call(this);
 
+		this.updatePowerup();
 		this.updateInputs();
 		this.updateSprite();
 		this.updateBullets();
@@ -87,10 +156,54 @@
 
 	Player.prototype.updateStats = function () {
 
-		this.speed = this.playerStats.speed * CONFIG.PIXEL_RATIO;
+		var speedFactor = this.isPowerupActive() ? CONFIG.POWERUP_SPEED_FACTOR : 1;
+
+		this.speed = this.playerStats.speed * CONFIG.PIXEL_RATIO * speedFactor;
 		this.accel = this.speed * this.playerStats.accel;
 		this.strength = this.playerStats.strength;
 		this.shootDelay = 1000 / this.playerStats.rate;
+	};
+
+	Player.prototype.isPowerupActive = function () {
+
+		return this.powerupExpiresAt > this.game.time.now;
+	};
+
+	Player.prototype.updatePowerup = function () {
+
+		var wasInvulnerable = this.isInvulnerable;
+
+		this.isInvulnerable = this.isPowerupActive();
+
+		if (wasInvulnerable !== this.isInvulnerable) {
+			if (!this.isInvulnerable) {
+				this.powerupExpiresAt = 0;
+			}
+
+			this.updateStats();
+		}
+
+		if (this.isInvulnerable) {
+			this.tint = 0x66ccff;
+		}
+
+		return wasInvulnerable !== this.isInvulnerable;
+	};
+
+	Player.prototype.activatePowerup = function () {
+
+		this.powerupExpiresAt = this.game.time.now + CONFIG.POWERUP_DURATION;
+		this.isInvulnerable = true;
+		this.updateStats();
+	};
+
+	Player.prototype.takeDamage = function (damage) {
+
+		if (this.isInvulnerable) {
+			return;
+		}
+
+		window['firsttry'].Mob.prototype.takeDamage.call(this, damage);
 	};
 
 	Player.prototype.updateInputs = function () {
@@ -137,6 +250,10 @@
 
 			if (keyboard.isDown(Phaser.Keyboard.W)) {
 				this.fire();
+			}
+
+			if (keyboard.isDown(Phaser.Keyboard.E)) {
+				this.fireRocket();
 			}
 		}
 	};
@@ -244,6 +361,80 @@
 		}
 	};
 
+	Player.prototype.fireRocket = function() {
+
+		if (this.alive) {
+			if (this.nextRocketAt > this.game.time.now) {
+				return;
+			}
+
+			var targets = this.getAvailableRocketTargets(),
+					volleySize = CONFIG.ROCKET_VOLLEY_SIZE || 3,
+					launched = 0,
+					i,
+					rocket;
+
+			for (i = 0; i < targets.length && i < volleySize; i++) {
+				rocket = this.rocketPool.getFirstExists(false);
+				if (!rocket) {
+					break;
+				}
+
+				this.launchRocketAt(rocket, targets[i]);
+				launched += 1;
+			}
+
+			if (launched > 0) {
+				this.nextRocketAt = this.game.time.now + CONFIG.ROCKET_DELAY;
+				this.game.sound['shoot_player_5'].play('', 0, 0.35);
+			}
+		}
+	};
+
+	Player.prototype.getAvailableRocketTargets = function() {
+
+		var reservedTargets = [],
+				targets = [];
+
+		this.rocketPool.forEachAlive(function (rocket) {
+			if (rocket.target) {
+				reservedTargets.push(rocket.target);
+			}
+		}, this);
+
+		this.state.mobPools[0].forEachAlive(function (plane) {
+			if (plane.exists && reservedTargets.indexOf(plane) === -1) {
+				targets.push(plane);
+			}
+		}, this);
+
+		targets.sort(function (a, b) {
+			var distanceA = Math.pow(a.x - this.x, 2) + Math.pow(a.y - this.y, 2),
+					distanceB = Math.pow(b.x - this.x, 2) + Math.pow(b.y - this.y, 2);
+
+			return distanceA - distanceB;
+		}.bind(this));
+
+		return targets;
+	};
+
+	Player.prototype.launchRocketAt = function(rocket, target) {
+
+		rocket.reset(this.x, this.y - 24 * CONFIG.PIXEL_RATIO);
+		if (!rocket.body) {
+			this.game.physics.enable(rocket, Phaser.Physics.ARCADE);
+		}
+
+		rocket.body.velocity.y = -(CONFIG.ROCKET_SPEED || 330) * CONFIG.PIXEL_RATIO;
+		rocket.body.velocity.x = 0;
+		rocket.projectileDamage = CONFIG.ROCKET_DAMAGE;
+		rocket.target = target;
+		rocket.heading = -Math.PI / 2;
+		rocket.angle = 0;
+		rocket.homingStartsAt = this.game.time.now + (CONFIG.ROCKET_HOMING_DELAY || 200);
+		rocket.lastSteeringAt = rocket.homingStartsAt;
+	};
+
 	Player.prototype.updateBullets = function() {
 
 		// PLAYER BULLETS
@@ -252,6 +443,49 @@
 		this.bulletPool.forEachAlive(function (bullet) {
 			if (bullet.y < -200) {
 				bullet.kill();
+				return;
+			}
+		}, this);
+
+		this.rocketPool.forEachAlive(function (rocket) {
+			var target = rocket.target,
+					speed,
+					desiredHeading,
+					headingDifference,
+					maxTurn,
+					delta;
+
+			if (!target || !target.alive || !target.exists) {
+				rocket.target = null;
+				rocket.kill();
+				return;
+			}
+
+			if (this.game.time.now >= rocket.homingStartsAt) {
+				speed = (CONFIG.ROCKET_SPEED || 330) * CONFIG.PIXEL_RATIO;
+				desiredHeading = Math.atan2(target.y - rocket.y, target.x - rocket.x);
+				headingDifference = desiredHeading - rocket.heading;
+
+				while (headingDifference > Math.PI) {
+					headingDifference -= Math.PI * 2;
+				}
+				while (headingDifference < -Math.PI) {
+					headingDifference += Math.PI * 2;
+				}
+
+				delta = (this.game.time.now - rocket.lastSteeringAt) / 1000;
+				maxTurn = (CONFIG.ROCKET_TURN_RATE || 180) * Math.PI / 180 * delta;
+				headingDifference = Math.max(-maxTurn, Math.min(maxTurn, headingDifference));
+				rocket.heading += headingDifference;
+				rocket.lastSteeringAt = this.game.time.now;
+				rocket.body.velocity.x = Math.cos(rocket.heading) * speed;
+				rocket.body.velocity.y = Math.sin(rocket.heading) * speed;
+				rocket.angle = rocket.heading * 180 / Math.PI + 90;
+			}
+
+			if (rocket.y < -200) {
+				rocket.target = null;
+				rocket.kill();
 				return;
 			}
 		}, this);
@@ -297,7 +531,7 @@
 			this.playerStats.speed += 10;
 
 		} else {
-			this.playerStats.accel += 1;
+			this.activatePowerup();
 		}
 
 		this.updateStats();

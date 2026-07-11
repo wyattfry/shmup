@@ -20,6 +20,8 @@
 		this.shootDelay = 3000;
 		this.bulletSpeed = 125;
 		this.points = 100;
+		this.coinReward = 2;
+		this.explosionScale = 2;
 		this.lootProbability = 0.1;
 
 		this.shootConfig = {
@@ -115,6 +117,7 @@
 		this.speed = 10;
 		this.shootDelay = 3000;
 		this.points = 2000;
+		this.explosionScale = 5;
 		this.lootProbability = 0.8;
 		this.bulletCancel = true;
 

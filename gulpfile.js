@@ -4,7 +4,6 @@ var gulp = require('gulp')
 	, concat = require('gulp-concat')
 	, sourcemaps = require('gulp-sourcemaps')
 	, rename = require('gulp-rename')
-	, minifycss = require('gulp-minify-css')
 	, minifyhtml = require('gulp-minify-html')
 	, processhtml = require('gulp-processhtml')
 	, jshint = require('gulp-jshint')
@@ -22,20 +21,20 @@ paths = {
 	dist:   './dist/'
 };
 
-gulp.task('clean', function () {
-	var stream = gulp.src(paths.dist, {read: false})
+function cleanTask() {
+	var stream = gulp.src(paths.dist, {read: false, allowEmpty: true})
 		.pipe(clean({force: true}))
 		.on('error', gutil.log);
 	return stream;
-});
+}
 
-gulp.task('copy', ['clean'], function () {
-	gulp.src(paths.assets)
+function copyTask() {
+	return gulp.src(paths.assets)
 		.pipe(gulp.dest(paths.dist + 'assets'))
 		.on('error', gutil.log);
-});
+}
 
-gulp.task('uglify', ['clean','lint'], function () {
+function uglifyTask() {
 	// var srcs = [paths.libs[0], paths.js[0]];
 	var srcs = [paths.libs[0],
 		'src/js/boot.js',
@@ -54,70 +53,82 @@ gulp.task('uglify', ['clean','lint'], function () {
 		'src/js/class/collectible.js',
 		'src/js/class/cloud.js',
 
+		'src/js/ground.js',
 		'src/js/game.js',
 		'src/js/main.js'
 	 ];
 
-	gulp.src(srcs)
+	return gulp.src(srcs)
 		.pipe(sourcemaps.init())
 		.pipe(concat('main.min.js'))
 		.pipe(sourcemaps.write())
-		.pipe(uglify({outSourceMaps: true}))
+		.pipe(uglify())
 		.pipe(gulp.dest(paths.dist))
 		.on('error', gutil.log);
-});
+}
 
-gulp.task('minifycss', ['clean'], function () {
- gulp.src(paths.css)
-		.pipe(minifycss({
-			keepSpecialComments: false,
-			removeEmpty: true
-		}))
+function minifycssTask() {
+	return gulp.src(paths.css)
 		.pipe(rename({suffix: '.min'}))
 		.pipe(gulp.dest(paths.dist))
 		.on('error', gutil.log);
-});
+}
 
-gulp.task('processhtml', ['clean'], function() {
-	gulp.src('src/index.html')
-		.pipe(processhtml('index.html'))
+function processhtmlTask() {
+	return gulp.src('src/index.html')
+		.pipe(processhtml())
 		.pipe(gulp.dest(paths.dist))
 		.on('error', gutil.log);
-});
+}
 
-gulp.task('minifyhtml', ['clean'], function() {
-	gulp.src('dist/index.html')
+function minifyhtmlTask() {
+	return gulp.src('dist/index.html')
 		.pipe(minifyhtml())
 		.pipe(gulp.dest(paths.dist))
 		.on('error', gutil.log);
-});
+}
 
-gulp.task('lint', function() {
-	gulp.src(paths.js)
+function lintTask() {
+	return gulp.src(paths.js)
 		.pipe(jshint('.jshintrc'))
 		.pipe(jshint.reporter('default'))
 		.on('error', gutil.log);
-});
+}
 
-gulp.task('html', function(){
-	gulp.src('src/*.html')
+function htmlTask() {
+	return gulp.src('src/*.html')
 		.pipe(connect.reload())
 		.on('error', gutil.log);
-});
+}
 
-gulp.task('connect', function () {
+function connectTask(done) {
 	connect.server({
 		root: [__dirname + '/src'],
 		port: 9000,
 		livereload: true
 	});
-});
+	done();
+}
 
-gulp.task('watch', function () {
-	gulp.watch(paths.js, ['lint']);
-	gulp.watch(['./src/index.html', paths.css, paths.js], ['html']);
-});
+function watchTask() {
+	gulp.watch(paths.js, lintTask);
+	gulp.watch(['./src/index.html', paths.css, paths.js], htmlTask);
+}
 
-gulp.task('default', ['connect', 'watch']);
-gulp.task('build', ['copy', 'uglify', 'minifycss', 'processhtml', 'minifyhtml']);
+gulp.task('clean', cleanTask);
+gulp.task('copy', gulp.series(cleanTask, copyTask));
+gulp.task('lint', lintTask);
+gulp.task('uglify', gulp.series(cleanTask, lintTask, uglifyTask));
+gulp.task('minifycss', gulp.series(cleanTask, minifycssTask));
+gulp.task('processhtml', gulp.series(cleanTask, processhtmlTask));
+gulp.task('minifyhtml', gulp.series(cleanTask, minifyhtmlTask));
+gulp.task('html', htmlTask);
+gulp.task('connect', connectTask);
+gulp.task('watch', watchTask);
 
+gulp.task('default', gulp.parallel(connectTask, watchTask));
+gulp.task('build', gulp.series(
+	cleanTask,
+	gulp.parallel(copyTask, gulp.series(lintTask, uglifyTask), minifycssTask, processhtmlTask),
+	minifyhtmlTask
+));

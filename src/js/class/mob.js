@@ -23,7 +23,10 @@
 		this.maxHealth = this.health;
 		this.isDamaged = false;
 		this.damageBlinkLast = 0;
+		this.baseTint = 0xffffff;
 		this.tint = 0xffffff;
+		this.healthBarBack = null;
+		this.healthBarFront = null;
 
 		// this.speed = 160 * CONFIG.PIXEL_RATIO;
 	}
@@ -43,6 +46,62 @@
 		}
 
 		this.updateTint();
+		this.updateHealthBar();
+	};
+
+	Mob.prototype.createHealthBar = function () {
+
+		if (this.healthBarBack || this instanceof window['firsttry'].Player) {
+			return;
+		}
+
+		this.healthBarBack = this.game.add.graphics(0, 0);
+		this.healthBarBack.beginFill(0x000000);
+		this.healthBarBack.drawRect(0, 0, 24 * CONFIG.PIXEL_RATIO, 3 * CONFIG.PIXEL_RATIO);
+		this.healthBarBack.endFill();
+
+		this.healthBarFront = this.game.add.graphics(0, 0);
+		this.healthBarFront.beginFill(0x00ff00);
+		this.healthBarFront.drawRect(0, 0, 24 * CONFIG.PIXEL_RATIO, 3 * CONFIG.PIXEL_RATIO);
+		this.healthBarFront.endFill();
+	};
+
+	Mob.prototype.updateHealthBar = function () {
+
+		var barWidth = 24 * CONFIG.PIXEL_RATIO,
+				barX = this.x - barWidth / 2,
+				barY = this.y - this.height / 2 - 6 * CONFIG.PIXEL_RATIO,
+				healthRatio = this.health / this.maxHealth;
+
+		if (!this.healthBarBack) {
+			return;
+		}
+
+		if (!this.exists || !this.alive || healthRatio >= 1) {
+			this.healthBarBack.visible = false;
+			this.healthBarFront.visible = false;
+			return;
+		}
+
+		if (healthRatio < 0) {
+			healthRatio = 0;
+		}
+
+		this.healthBarBack.visible = true;
+		this.healthBarFront.visible = true;
+		this.healthBarBack.x = barX;
+		this.healthBarBack.y = barY;
+		this.healthBarFront.x = barX;
+		this.healthBarFront.y = barY;
+		this.healthBarFront.scale.x = healthRatio;
+	};
+
+	Mob.prototype.hideHealthBar = function () {
+
+		if (this.healthBarBack) {
+			this.healthBarBack.visible = false;
+			this.healthBarFront.visible = false;
+		}
 	};
 
 	Mob.prototype.updateTint = function () {
@@ -60,7 +119,7 @@
 		if (this.isDamaged) {
 			this.tint = 0xff0000;
 		} else {
-			this.tint = 0xffffff;
+			this.tint = this.baseTint;
 		}
 	};
 
@@ -69,6 +128,7 @@
 		this.health -= damage;
 
 		if (this.health <= 0) {
+			this.hideHealthBar();
 			this.kill();
 
 		} else {
@@ -86,9 +146,13 @@
 
 		// replenish health (dunno why, but it's always set to 1 when calling a dead sprite from a pool)
 		this.health = this.maxHealth;
+		this.createHealthBar();
+		this.updateHealthBar();
 	};
 
 	Mob.prototype.die = function () {
+
+		this.hideHealthBar();
 
 		this.kill();
 	};

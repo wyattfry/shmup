@@ -11,15 +11,47 @@ var CONFIG = {
 	MOBPOOL_SIZE: 				25,
 	BULLETPOOL_SIZE: 			100,
 	BULLETPOOL_SIZE_ENNEMY: 			100,
+	ROCKETPOOL_SIZE: 			10,
+	ROCKET_DAMAGE: 				120,
+	ROCKET_DELAY: 				500,
+	ROCKET_VOLLEY_SIZE: 	3,
+	ROCKET_SPEED: 				330,
+	ROCKET_HOMING_DELAY: 	200,
+	ROCKET_TURN_RATE: 		180,
+	ROCKET_AOE_RADIUS: 		128,
+	ROCKET_AOE_MAX_TARGETS: 4,
+	ROCKET_PLAYER_DAMAGE: 	4,
+
+	GROUND_TRIGGER_PLANE_KILLS: 20,
+	GROUND_ENEMY_KILLS: 	50,
+	GROUND_PLAYER_HEALTH: 	10,
+	GROUND_WORLD_WIDTH: 		480,
+	GROUND_WORLD_HEIGHT: 	520,
+	GROUND_PLAYER_SPEED: 	140,
+	GROUND_ENEMY_SPEED: 		65,
+	GROUND_BULLET_SPEED: 	360,
+	GROUND_ENEMY_BULLET_SPEED: 210,
+	GROUND_ROCKET_SPEED: 	220,
+	GROUND_RIFLE_DELAY: 		180,
+	GROUND_ROCKET_DELAY: 	1000,
+	GROUND_ROCKET_RADIUS: 	64,
+	GROUND_HIT_IMMUNITY: 	700,
+	GROUND_ACTIVE_ENEMIES: 3,
+	GROUND_ENEMY_SPAWN_DELAY: 1500,
+	GROUND_ENEMY_HEALTH: 2,
+	GROUND_ENEMY_POOL_SIZE: 16,
 	BONUSPOOL_SIZE: 			20,
 
 	CLOUDPOOL_SIZE: 			10,
 	CLOUD_WIND_SPEED: 		20,
+	TROOPPOOL_SIZE: 			30,
 
 	SCROLL_SPEED: 				40,
 	SCROLL_ACCEL: 				15,
 
 	BLINK_DAMAGE_TIME: 		8,
+	POWERUP_DURATION: 		5000,
+	POWERUP_SPEED_FACTOR: 1.6,
 
 	AUDIO_LEVEL: 					0.5,
 
@@ -51,6 +83,23 @@ var CONFIG = {
 		accel: 							5,
 		strength: 					150,
 		rate: 							4
+	}],
+
+	PLAYER_COLORS: 				[{
+		name: 							'White',
+		tint: 							0xffffff
+	},{
+		name: 							'Red',
+		tint: 							0xff6666
+	},{
+		name: 							'Blue',
+		tint: 							0x66aaff
+	},{
+		name: 							'Green',
+		tint: 							0x66dd88
+	},{
+		name: 							'Yellow',
+		tint: 							0xffdd66
 	}],
 
 	DEBUG: {
@@ -112,4 +161,3 @@ Array.prototype.remove = function(from, to) {
 	window['firsttry'].Boot = Boot;
 
 }());
-
