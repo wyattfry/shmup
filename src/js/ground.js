@@ -166,8 +166,9 @@
 			this.obstacles.enableBody = true;
 			this.obstacles.physicsBodyType = Phaser.Physics.ARCADE;
 
-			this.addBiomeObstacles(20, 0, halfWidth, 0, halfHeight, this.treeTexture);
-			this.addBiomeObstacles(90, halfWidth, width, 0, halfHeight, this.treeTexture);
+			this.addBiomeObstacles(50, 0, halfWidth, 0, halfHeight, this.treeTexture);
+			this.addBiomeObstacles(190, halfWidth, width, 0, halfHeight, this.treeTexture);
+			this.addBiomeObstacles(20, 0, halfWidth, halfHeight, height, this.treeTexture);
 			this.addBiomeObstacles(35, 0, halfWidth, halfHeight, height, this.swampObstacleTexture);
 			this.addBiomeObstacles(50, halfWidth, width, halfHeight, height, this.rubbleTexture);
 		},
@@ -422,24 +423,48 @@
 		spawnEnemy: function () {
 
 			var enemy = this.enemyPool.getFirstExists(false),
-					angle = this.rnd.integerInRange(0, 359) * Math.PI / 180,
-					distance = this.rnd.integerInRange(
-						CONFIG.GROUND_SPAWN_MIN_DISTANCE,
-						CONFIG.GROUND_SPAWN_MAX_DISTANCE
-					) * CONFIG.PIXEL_RATIO,
 					margin = 35 * CONFIG.PIXEL_RATIO,
+					angle,
+					distance,
+					attempt,
 					x,
 					y;
 
 			if (!enemy) { return; }
-			x = this.player.x + Math.cos(angle) * distance;
-			y = this.player.y + Math.sin(angle) * distance;
-			x = Math.max(margin, Math.min(this.game.world.width - margin, x));
-			y = Math.max(margin, Math.min(this.game.world.height - margin, y));
+			for (attempt = 0; attempt < CONFIG.GROUND_SPAWN_ATTEMPTS; attempt++) {
+				angle = this.rnd.integerInRange(0, 359) * Math.PI / 180;
+				distance = this.rnd.integerInRange(
+					CONFIG.GROUND_SPAWN_MIN_DISTANCE,
+					CONFIG.GROUND_SPAWN_MAX_DISTANCE
+				) * CONFIG.PIXEL_RATIO;
+				x = this.player.x + Math.cos(angle) * distance;
+				y = this.player.y + Math.sin(angle) * distance;
+				x = Math.max(margin, Math.min(this.game.world.width - margin, x));
+				y = Math.max(margin, Math.min(this.game.world.height - margin, y));
+				if (this.isEnemySpawnClear(x, y)) { break; }
+			}
+			if (attempt >= CONFIG.GROUND_SPAWN_ATTEMPTS) { return; }
 			enemy.reset(x, y);
 			enemy.health = CONFIG.GROUND_ENEMY_HEALTH;
 			enemy.tint = 0xffffff;
+			enemy.roamX = Math.cos(angle);
+			enemy.roamY = Math.sin(angle);
+			enemy.nextRoamAt = this.game.time.now + CONFIG.GROUND_ENEMY_ROAM_DELAY;
 			enemy.nextShotAt = this.game.time.now + this.rnd.integerInRange(500, 1200);
+		},
+
+		isEnemySpawnClear: function (x, y) {
+
+			var clear = true,
+					separation = CONFIG.GROUND_ENEMY_SEPARATION * CONFIG.PIXEL_RATIO,
+					separationSquared = separation * separation;
+
+			this.enemyPool.forEachAlive(function (enemy) {
+				if (Math.pow(enemy.x - x, 2) + Math.pow(enemy.y - y, 2) < separationSquared) {
+					clear = false;
+				}
+			}, this);
+			return clear;
 		},
 
 		updateEnemies: function () {
@@ -448,9 +473,20 @@
 				var dx = this.player.x - enemy.x,
 						dy = this.player.y - enemy.y,
 						distance = Math.sqrt(dx * dx + dy * dy),
-						speed = CONFIG.GROUND_ENEMY_SPEED * CONFIG.PIXEL_RATIO;
+						speed = CONFIG.GROUND_ENEMY_SPEED * CONFIG.PIXEL_RATIO,
+						detectionDistance = CONFIG.GROUND_ENEMY_DETECTION_DISTANCE * CONFIG.PIXEL_RATIO,
+						roamAngle;
 
-				if (distance > 170 * CONFIG.PIXEL_RATIO) {
+				if (distance > detectionDistance) {
+					if (this.game.time.now >= enemy.nextRoamAt) {
+						roamAngle = this.rnd.integerInRange(0, 359) * Math.PI / 180;
+						enemy.roamX = Math.cos(roamAngle);
+						enemy.roamY = Math.sin(roamAngle);
+						enemy.nextRoamAt = this.game.time.now + CONFIG.GROUND_ENEMY_ROAM_DELAY;
+					}
+					enemy.body.velocity.x = enemy.roamX * CONFIG.GROUND_ENEMY_ROAM_SPEED * CONFIG.PIXEL_RATIO;
+					enemy.body.velocity.y = enemy.roamY * CONFIG.GROUND_ENEMY_ROAM_SPEED * CONFIG.PIXEL_RATIO;
+				} else if (distance > 170 * CONFIG.PIXEL_RATIO) {
 					enemy.body.velocity.x = dx / distance * speed;
 					enemy.body.velocity.y = dy / distance * speed;
 				} else {
@@ -459,7 +495,17 @@
 						this.enemyFire(enemy, dx, dy, distance);
 					}
 				}
+				this.updateEnemyFacing(enemy);
 			}, this);
+		},
+
+		updateEnemyFacing: function (enemy) {
+
+			if (enemy.body.velocity.x > 0.01) {
+				enemy.angle = 90;
+			} else if (enemy.body.velocity.x < -0.01) {
+				enemy.angle = -90;
+			}
 		},
 
 		enemyFire: function (enemy, dx, dy, distance) {
