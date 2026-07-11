@@ -1,0 +1,26 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Start game server",
+			"type": "npm",
+			"script": "start",
+			"isBackground": true,
+			"problemMatcher": {
+				"owner": "gulp",
+				"pattern": {
+					"regexp": "^(?!)$"
+				},
+				"background": {
+					"activeOnStart": true,
+					"beginsPattern": ".*",
+					"endsPattern": "Server started|localhost:9000"
+				}
+			},
+			"presentation": {
+				"reveal": "silent",
+				"panel": "dedicated"
+			}
+		}
+	]
+}
