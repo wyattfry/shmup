@@ -51,7 +51,7 @@
 				w: this.input.keyboard.addKey(Phaser.Keyboard.W)
 			};
 
-			this.titleTxt = this.add.bitmapText(x, 24, 'minecraftia', 'PHASER SHMUP' );
+			this.titleTxt = this.add.bitmapText(x, 24, 'minecraftia', 'GUNNER' );
 			this.titleTxt.align = 'center';
 			this.titleTxt.x = this.game.width / 2 - this.titleTxt.textWidth / 2;
 			this.titleTxt.y = 24;

@@ -5,6 +5,11 @@ var fs = require('fs');
 var vm = require('vm');
 var bootSource = fs.readFileSync('src/js/boot.js', 'utf8');
 var preloaderSource = fs.readFileSync('src/js/preloader.js', 'utf8');
+var menuSource = fs.readFileSync('src/js/menu.js', 'utf8');
+var indexSource = fs.readFileSync('src/index.html', 'utf8');
+
+assert.ok(/'GUNNER'/.test(menuSource), 'the plane-selection screen must use the GUNNER title');
+assert.ok(/<title>GUNNER<\/title>/.test(indexSource), 'the browser tab must use the GUNNER title');
 
 assert.strictEqual((bootSource.match(/className:/g) || []).length, 5,
 	'the game must define five player class profiles');
