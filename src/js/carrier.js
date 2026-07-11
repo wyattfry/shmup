@@ -181,7 +181,9 @@
 
 			var runData = this.game.runData || {},
 					kills = runData.groundKills || CONFIG.GROUND_ENEMY_KILLS,
-					coins = runData.coins || 0;
+					coins = runData.coins || 0,
+					unlockedNow = this.unlockFifthPlane(),
+					rewardText = unlockedNow ? '\n\nNEW PLANE UNLOCKED' : '';
 
 			this.phase = 'complete';
 			if (this.dialoguePanel) { this.dialoguePanel.destroy(); }
@@ -191,10 +193,22 @@
 			this.titleText.y = 90;
 			this.centerText(this.titleText);
 			this.summaryText = this.add.bitmapText(0, 210, 'minecraftia',
-				'ENEMIES ' + kills + '\nCOINS ' + coins + '\n\nCLICK TO RETURN');
+				'ENEMIES ' + kills + '\nCOINS ' + coins + rewardText + '\n\nCLICK TO RETURN');
 			this.summaryText.align = 'center';
 			this.summaryText.scale.setTo(CONFIG.PIXEL_RATIO / 2, CONFIG.PIXEL_RATIO / 2);
 			this.centerText(this.summaryText);
+		},
+
+		unlockFifthPlane: function () {
+
+			var wasUnlocked = !!this.game.plane5Unlocked;
+			this.game.plane5Unlocked = true;
+			try {
+				window.localStorage.setItem(CONFIG.PLANE_5_UNLOCK_KEY, 'unlocked');
+			} catch (error) {
+				this.game.plane5Unlocked = true;
+			}
+			return !wasUnlocked;
 		},
 
 		onDown: function () {

@@ -28,6 +28,7 @@
       this.load.spritesheet('player_2', 'assets/player_ship_2.png', 24, 28);
       this.load.spritesheet('player_3', 'assets/player_ship_3.png', 24, 28);
       this.load.spritesheet('player_4', 'assets/player_ship_4.png', 24, 28);
+      this.load.spritesheet('player_5', 'assets/player_ship_5.png', 24, 28);
 
       this.load.spritesheet('player_bullet', 'assets/player_bullets.png', 16, 16);
       this.load.image('mob_bullet_1', 'assets/mob_bullet_1.png');

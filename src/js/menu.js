@@ -16,9 +16,10 @@
 		this.skipTxt = null;
 		this.menuMode = 'class';
 		this.keys = null;
-		this.profileRowHeight = 128;
+		this.profileRowHeight = 110;
 		this.selectedPlayerClass = 1;
 		this.selectedPlayerColorIndex = 0;
+		this.plane5Unlocked = false;
 	}
 
 	Menu.prototype = {
@@ -31,7 +32,11 @@
 			this.profileSprites = [];
 			this.colorSwatches = [];
 			this.menuMode = 'class';
+			this.plane5Unlocked = this.loadPlaneUnlock();
 			this.selectedPlayerClass = this.game.selectedPlayerClass || 1;
+			if (this.selectedPlayerClass === 5 && !this.plane5Unlocked) {
+				this.selectedPlayerClass = 1;
+			}
 			this.selectedPlayerColorIndex = this.game.selectedPlayerColorIndex || 0;
 			this.keys = {
 				up: this.input.keyboard.addKey(Phaser.Keyboard.UP),
@@ -42,6 +47,7 @@
 				two: this.input.keyboard.addKey(Phaser.Keyboard.TWO),
 				three: this.input.keyboard.addKey(Phaser.Keyboard.THREE),
 				four: this.input.keyboard.addKey(Phaser.Keyboard.FOUR),
+				five: this.input.keyboard.addKey(Phaser.Keyboard.FIVE),
 				w: this.input.keyboard.addKey(Phaser.Keyboard.W)
 			};
 
@@ -56,7 +62,7 @@
 			this.skipTxt.inputEnabled = true;
 			this.skipTxt.events.onInputDown.add(this.skipToGround, this);
 
-			this.startTxt = this.add.bitmapText(x, this.game.height - 124, 'minecraftia', 'Arrows / 1-4 : choose class\nW / click : color\nIn game: W shoot, E rocket');
+			this.startTxt = this.add.bitmapText(x, this.game.height - 124, 'minecraftia', 'Arrows / 1-5 : choose class\nW / click : color\nIn game: W shoot, E rocket');
 			this.startTxt.scale.setTo(0.7, 0.7);
 			this.startTxt.align = 'center';
 			this.startTxt.x = this.game.width / 2 - this.startTxt.textWidth * this.startTxt.scale.x / 2;
@@ -100,6 +106,9 @@
 
 			} else if (this.keys.four.justDown) {
 				this.selectPlayerClass(4);
+
+			} else if (this.keys.five.justDown) {
+				this.selectPlayerClass(5);
 			}
 		},
 
@@ -150,8 +159,9 @@
 			} else {
 				for (i = 0; i < this.profileTxts.length; i++) {
 					if (pointerY >= this.profileTxts[i].y && pointerY <= this.profileTxts[i].y + this.profileRowHeight) {
-						this.selectPlayerClass(i + 1);
-						break;
+						if (!this.selectPlayerClass(i + 1)) { return; }
+						this.confirmMenu();
+						return;
 					}
 				}
 			}
@@ -254,10 +264,26 @@
 			} else if (playerClass > classCount) {
 				playerClass = 1;
 			}
+			if (playerClass === 5 && !this.plane5Unlocked) {
+				return false;
+			}
 
 			this.selectedPlayerClass = playerClass;
 			this.game.selectedPlayerClass = playerClass;
 			this.updateProfileList();
+			return true;
+		},
+
+		loadPlaneUnlock: function () {
+
+			var unlocked = !!this.game.plane5Unlocked;
+			try {
+				unlocked = unlocked || window.localStorage.getItem(CONFIG.PLANE_5_UNLOCK_KEY) === 'unlocked';
+			} catch (error) {
+				unlocked = !!this.game.plane5Unlocked;
+			}
+			this.game.plane5Unlocked = unlocked;
+			return unlocked;
 		},
 
 		updateProfileList: function () {
@@ -269,6 +295,14 @@
 
 			for (i = 0; i < CONFIG.CLASS_STATS.length; i++) {
 				stats = CONFIG.CLASS_STATS[i];
+				if (i === 4 && !this.plane5Unlocked) {
+					this.profileTxts[i].setText('  5. LOCKED\nCOMPLETE THE MISSION\nTO UNLOCK');
+					this.profileSprites[i].tint = 0x111111;
+					this.profileSprites[i].alpha = 0.35;
+					this.profileSprites[i].animations.stop();
+					this.profileSprites[i].frame = 2;
+					continue;
+				}
 				prefix = (i + 1 === this.selectedPlayerClass) ? '> ' : '  ';
 				text = prefix + (i + 1) + '. ' + stats.className + '\n' +
 					'HP ' + stats.health + '  STR ' + stats.strength + '\n' +

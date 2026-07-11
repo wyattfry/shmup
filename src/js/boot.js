@@ -62,6 +62,7 @@ var CONFIG = {
 	BLINK_DAMAGE_TIME: 		8,
 	POWERUP_DURATION: 		5000,
 	POWERUP_SPEED_FACTOR: 1.6,
+	PLANE_5_UNLOCK_KEY: 'phaser-shmup-plane-5-v1',
 
 	AUDIO_LEVEL: 					0.5,
 
@@ -93,6 +94,13 @@ var CONFIG = {
 		accel: 							5,
 		strength: 					150,
 		rate: 							4
+	},{
+		className: 					'Phantom',
+		health: 						90,
+		speed: 						180,
+		accel: 						10,
+		strength: 					110,
+		rate: 							9
 	}],
 
 	PLAYER_COLORS: 				[{

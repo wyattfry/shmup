@@ -339,12 +339,20 @@
 				return;
 			}
 
+			var offsets = this.playerClass === 5 ? [-8, 8] : [0],
+					launched = 0,
+					bullet,
+					i;
+
+			for (i = 0; i < offsets.length; i++) {
+				bullet = this.bulletPool.getFirstExists(false);
+				if (!bullet) { break; }
+				bullet.reset(this.x + offsets[i] * CONFIG.PIXEL_RATIO, this.y - 20);
+				bullet.body.velocity.y = -500 * CONFIG.PIXEL_RATIO;
+				launched += 1;
+			}
+			if (launched === 0) { return; }
 			this.nextShotAt = this.game.time.now + this.shootDelay;
-
-			var bullet = this.bulletPool.getFirstExists(false);
-			bullet.reset(this.x, this.y - 20);
-
-			bullet.body.velocity.y = -500 * CONFIG.PIXEL_RATIO;
 
 
 			// TODO in updateBulletPool instead !!!

@@ -39,6 +39,16 @@ assert.strictEqual(missionComplete, false, 'mission completion must wait until d
 state.advanceDialogue();
 assert.strictEqual(missionComplete, true, 'the final dialogue click must show mission completion');
 
+var storedUnlock = null;
+context.window.localStorage = {
+	setItem: function (key, value) { storedUnlock = key + '=' + value; }
+};
+state.game = { plane5Unlocked: false };
+assert.strictEqual(state.unlockFifthPlane(), true, 'first mission completion must award the fifth plane');
+assert.strictEqual(state.game.plane5Unlocked, true, 'the plane unlock must persist in game memory');
+assert.ok(/=unlocked$/.test(storedUnlock), 'the plane unlock must persist in browser storage');
+assert.strictEqual(state.unlockFifthPlane(), false, 'an already unlocked plane must not be awarded twice');
+
 var startedState = null;
 state.phase = 'complete';
 state.game = { state: { start: function (name) { startedState = name; } } };
