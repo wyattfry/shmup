@@ -1,4 +1,5 @@
 node_modules/
+dist/
 src/bower_components/phaser-official/.bower.json
 src/bower_components/phaser-official/CHANGELOG.md
 src/bower_components/phaser-official/CONTRIBUTING.md
@@ -16,4 +17,3 @@ src/bower_components/phaser-official/tasks/
 src/bower_components/phaser-official/typescript/
 
 src/assets/tyrian-graphics
-dist/assets/tyrian-graphics
