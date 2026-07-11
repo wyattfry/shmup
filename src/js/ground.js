@@ -38,6 +38,7 @@
 			this.createPlane();
 			this.createControls();
 			this.createHUD();
+			this.createAudio();
 			this.createIntroCutscene();
 			this.game.camera.follow(this.player, Phaser.Camera.FOLLOW_PLATFORMER);
 		},
@@ -290,6 +291,12 @@
 			this.updateHUD();
 		},
 
+		createAudio: function () {
+
+			this.rifleSound = this.add.audio('shoot_player_1', CONFIG.AUDIO_LEVEL);
+			this.rocketSound = this.add.audio('shoot_player_5', CONFIG.AUDIO_LEVEL);
+		},
+
 		createIntroCutscene: function () {
 
 			var playerClass = this.game.selectedPlayerClass || 1;
@@ -379,6 +386,7 @@
 			}
 			this.nextRifleAt = this.game.time.now + CONFIG.GROUND_RIFLE_DELAY;
 			this.launchGroundProjectile(bullet, CONFIG.GROUND_BULLET_SPEED);
+			this.rifleSound.play();
 		},
 
 		fireGroundRocket: function () {
@@ -394,6 +402,7 @@
 			this.nextRocketAt = this.game.time.now + CONFIG.GROUND_ROCKET_DELAY;
 			this.launchGroundProjectile(rocket, CONFIG.GROUND_ROCKET_SPEED);
 			rocket.angle = Math.atan2(this.facing.y, this.facing.x) * 180 / Math.PI + 90;
+			this.rocketSound.play();
 		},
 
 		launchGroundProjectile: function (projectile, speed) {

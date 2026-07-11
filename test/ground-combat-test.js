@@ -5,10 +5,12 @@ var fs = require('fs');
 var vm = require('vm');
 var bootSource = fs.readFileSync('src/js/boot.js', 'utf8');
 var groundPlayerHealth = Number(/GROUND_PLAYER_HEALTH:\s*(\d+)/.exec(bootSource)[1]);
+var groundEnemyKills = Number(/GROUND_ENEMY_KILLS:\s*(\d+)/.exec(bootSource)[1]);
 var activeGroundEnemies = Number(/GROUND_ACTIVE_ENEMIES:\s*(\d+)/.exec(bootSource)[1]);
 var extraGroundTreesMatch = /GROUND_EXTRA_TREES:\s*(\d+)/.exec(bootSource);
 
 assert.strictEqual(activeGroundEnemies, 10, 'ground combat must allow ten active enemies');
+assert.strictEqual(groundEnemyKills, 20, 'the recovered plane must require 20 enemy kills');
 assert.ok(extraGroundTreesMatch && Number(extraGroundTreesMatch[1]) === 150,
 	'the large ground map must add 150 trees');
 
@@ -21,7 +23,7 @@ var context = {
 		GROUND_ROCKET_DELAY: 1000,
 		GROUND_BULLET_SPEED: 360,
 		GROUND_ROCKET_SPEED: 220,
-		GROUND_ENEMY_KILLS: 50,
+		GROUND_ENEMY_KILLS: groundEnemyKills,
 		GROUND_PLAYER_HEALTH: groundPlayerHealth,
 		GROUND_HIT_IMMUNITY: 700,
 		GROUND_ACTIVE_ENEMIES: 10,
@@ -144,6 +146,10 @@ state.groundRocketPool = {
 };
 state.nextRifleAt = 0;
 state.nextRocketAt = 0;
+var rifleSounds = 0;
+var rocketSounds = 0;
+state.rifleSound = { play: function () { rifleSounds += 1; } };
+state.rocketSound = { play: function () { rocketSounds += 1; } };
 state.fireRifle();
 state.fireGroundRocket();
 
@@ -152,10 +158,18 @@ assert.ok(bullets[0].body.velocity.x > 0 && bullets[0].body.velocity.y < 0,
 	'rifle bullets must use the last movement direction');
 assert.strictEqual(rockets.length, 1, 'E must launch one ground rocket');
 assert.strictEqual(state.nextRocketAt, 2000, 'ground rockets must have a one-second cooldown');
+assert.strictEqual(rifleSounds, 1, 'a successful ground rifle shot must play one sound');
+assert.strictEqual(rocketSounds, 1, 'a successful ground rocket launch must play one sound');
+
+state.fireRifle();
+state.fireGroundRocket();
+assert.strictEqual(rifleSounds, 1, 'ground rifle cooldown attempts must remain silent');
+assert.strictEqual(rocketSounds, 1, 'ground rocket cooldown attempts must remain silent');
 
 state.game.time.now = 1500;
 state.fireGroundRocket();
 assert.strictEqual(rockets.length, 1, 'ground rockets must not launch during cooldown');
+assert.strictEqual(rocketSounds, 1, 'later ground rocket cooldown attempts must remain silent');
 
 state.updateHUD = function () {};
 state.messageText = { setText: function () {} };
@@ -166,8 +180,8 @@ for (var i = 0; i < context.CONFIG.GROUND_ENEMY_KILLS; i++) {
 		kill: function () { this.alive = false; }
 	});
 }
-assert.strictEqual(state.kills, 50, 'the ground objective must require 50 enemy kills');
-assert.strictEqual(state.parkedPlane.exists, true, 'the plane must appear after 50 enemy kills');
+assert.strictEqual(state.kills, 20, 'the ground objective must require 20 enemy kills');
+assert.strictEqual(state.parkedPlane.exists, true, 'the plane must appear after 20 enemy kills');
 
 var startedState = null;
 state.game.runData = {};
