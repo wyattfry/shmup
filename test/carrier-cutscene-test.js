@@ -53,6 +53,6 @@ var startedState = null;
 state.phase = 'complete';
 state.game = { state: { start: function (name) { startedState = name; } } };
 state.onDown();
-assert.strictEqual(startedState, 'menu', 'mission completion input must return to plane selection');
+assert.strictEqual(startedState, 'home', 'mission completion input must return to the main menu');
 
 console.log('carrier cutscene regression test passed');

@@ -217,7 +217,7 @@
 				this.advanceDialogue();
 			} else if (this.phase === 'complete') {
 				this.game.runData = null;
-				this.game.state.start('menu');
+				this.game.state.start('home');
 			}
 		},
 

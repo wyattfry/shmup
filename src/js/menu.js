@@ -32,12 +32,16 @@
 			this.profileSprites = [];
 			this.colorSwatches = [];
 			this.menuMode = 'class';
+			this.progress = window.firsttry.Progress.load(this.game);
 			this.plane5Unlocked = this.loadPlaneUnlock();
 			this.selectedPlayerClass = this.game.selectedPlayerClass || 1;
 			if (this.selectedPlayerClass === 5 && !this.plane5Unlocked) {
 				this.selectedPlayerClass = 1;
 			}
 			this.selectedPlayerColorIndex = this.game.selectedPlayerColorIndex || 0;
+			if (!this.isColorUnlocked(this.selectedPlayerColorIndex)) {
+				this.selectedPlayerColorIndex = 0;
+			}
 			this.keys = {
 				up: this.input.keyboard.addKey(Phaser.Keyboard.UP),
 				down: this.input.keyboard.addKey(Phaser.Keyboard.DOWN),
@@ -144,7 +148,10 @@
 				for (i = 0; i < this.colorSwatches.length; i++) {
 					if (pointerX >= this.colorSwatches[i].x && pointerX <= this.colorSwatches[i].x + this.colorSwatches[i].size &&
 							pointerY >= this.colorSwatches[i].y && pointerY <= this.colorSwatches[i].y + this.colorSwatches[i].size) {
-						this.selectPlayerColor(i);
+						if (!this.selectPlayerColor(i)) {
+							this.startTxt.setText('LOCKED - ' + CONFIG.PLAYER_COLORS[i].price + ' COINS\nBUY IT IN THE SHOP');
+							this.startTxt.x = this.game.width / 2 - this.startTxt.textWidth * this.startTxt.scale.x / 2;
+						}
 						return;
 					}
 				}
@@ -173,8 +180,8 @@
 
 			var i
 				, swatch
-				, size = 44
-				, x = 180
+				, size = 40
+				, x = 90
 				, y = 320;
 
 			this.colorTxt = this.add.bitmapText(0, 106, 'minecraftia', 'PICK COLOR');
@@ -204,12 +211,22 @@
 			} else if (colorIndex >= CONFIG.PLAYER_COLORS.length) {
 				colorIndex = 0;
 			}
+			if (!this.isColorUnlocked(colorIndex)) {
+				return false;
+			}
 
 			this.selectedPlayerColorIndex = colorIndex;
 			this.game.selectedPlayerColorIndex = colorIndex;
 			this.game.selectedPlayerColor = CONFIG.PLAYER_COLORS[colorIndex].tint;
 			this.updateColorTabs();
 			this.updateProfileList();
+			return true;
+		},
+
+		isColorUnlocked: function (colorIndex) {
+
+			var color = CONFIG.PLAYER_COLORS[colorIndex];
+			return !color.premium || this.progress.colors.indexOf(color.id) !== -1;
 		},
 
 		updateColorTabs: function () {
@@ -224,6 +241,7 @@
 				swatch.beginFill(CONFIG.PLAYER_COLORS[i].tint);
 				swatch.drawRect(0, 0, swatch.size, swatch.size);
 				swatch.endFill();
+				swatch.alpha = this.isColorUnlocked(i) ? 1 : 0.28;
 			}
 
 			if (this.colorPreview) {
@@ -294,7 +312,7 @@
 				, text;
 
 			for (i = 0; i < CONFIG.CLASS_STATS.length; i++) {
-				stats = CONFIG.CLASS_STATS[i];
+				stats = this.getEffectiveStats(CONFIG.CLASS_STATS[i]);
 				if (i === 4 && !this.plane5Unlocked) {
 					this.profileTxts[i].setText('  5. LOCKED\nCOMPLETE THE MISSION\nTO UNLOCK');
 					this.profileSprites[i].tint = 0x111111;
@@ -320,6 +338,19 @@
 					this.profileSprites[i].frame = 2;
 				}
 			}
+		},
+
+		getEffectiveStats: function (stats) {
+
+			var upgrades = this.progress.upgrades;
+			return {
+				className: stats.className,
+				health: stats.health + upgrades.armor * 10,
+				speed: stats.speed + upgrades.engine * 5,
+				accel: stats.accel,
+				strength: stats.strength + upgrades.weapons * 10,
+				rate: stats.rate + upgrades.fireControl
+			};
 		},
 
 		showColorScreen: function () {

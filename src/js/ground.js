@@ -694,7 +694,7 @@
 			this.messageText.setText('GAME OVER');
 			this.game.runData = null;
 			this.game.time.events.add(1200, function () {
-				this.game.state.start('menu');
+				this.game.state.start('home');
 			}, this);
 		},
 

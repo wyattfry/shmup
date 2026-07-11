@@ -32,6 +32,7 @@
 			strength: this.classStats.strength,
 			rate: this.classStats.rate
 		};
+		this.applyPermanentUpgrades(window.firsttry.Progress.load(this.game));
 
 		// Phaser.Sprite.call(this, this.game, 0, 0, 'player_' + this.playerClass);
 		window['firsttry'].Mob.call(this, state, 'player_' + this.playerClass);
@@ -69,6 +70,15 @@
 
 	Player.prototype = Object.create(window['firsttry'].Mob.prototype);
 	Player.prototype.constructor = Player;
+
+	Player.prototype.applyPermanentUpgrades = function(progress) {
+
+		var upgrades = progress.upgrades;
+		this.playerStats.health += upgrades.armor * 10;
+		this.playerStats.speed += upgrades.engine * 5;
+		this.playerStats.strength += upgrades.weapons * 10;
+		this.playerStats.rate += upgrades.fireControl;
+	};
 
 	Player.prototype.spawn = function() {
 
@@ -221,7 +231,7 @@
 		} else if (this.state.gameState === 2) {	// Post-play (game over)
 
 			if (keyboard.isDown(Phaser.Keyboard.W)) {
-				this.game.state.start('menu');
+				this.game.state.start('home');
 			}
 
 		} else { // Play

@@ -5,13 +5,23 @@ var fs = require('fs');
 var vm = require('vm');
 
 function Flagship() {}
+var persistentCoins = 0;
+var coinAwards = 0;
 
 var context = {
 	CONFIG: { PIXEL_RATIO: 1 },
 	Phaser: {},
 	window: {
 		firsttry: {
-			Flagship: Flagship
+			Flagship: Flagship,
+			Progress: {
+				load: function () { return { coins: persistentCoins }; },
+				addCoins: function (game, amount) {
+					persistentCoins += amount;
+					coinAwards += 1;
+					return persistentCoins;
+				}
+			}
 		}
 	}
 };
@@ -31,6 +41,7 @@ var mob = {
 };
 
 gameState.player = { strength: 10 };
+gameState.game = {};
 gameState.coins = 0;
 gameState.score = 0;
 gameState.explode = function () {};
@@ -41,6 +52,8 @@ gameState.bulletVSmob({
 }, mob);
 
 assert.strictEqual(gameState.coins, 2, 'destroying a plane must award two coins');
+assert.strictEqual(persistentCoins, 2, 'destroying a plane must persist its coin reward');
+assert.strictEqual(coinAwards, 1, 'each defeated plane must persist its reward exactly once');
 
 var coinLabel = {
 	text: '',

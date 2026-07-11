@@ -60,4 +60,13 @@ assert.ok(phantomBullets[0].x < 100 && phantomBullets[1].x > 100,
 assert.strictEqual(phantomBullets[0].y, phantomBullets[1].y,
 	'the fifth plane twin cannons must fire in sync');
 
+var upgradedPlayer = Object.create(Player.prototype);
+upgradedPlayer.playerStats = { health: 100, speed: 140, strength: 100, rate: 5 };
+upgradedPlayer.applyPermanentUpgrades({
+	upgrades: { armor: 2, engine: 3, weapons: 1, fireControl: 4 }
+});
+assert.deepStrictEqual(upgradedPlayer.playerStats,
+	{ health: 120, speed: 155, strength: 110, rate: 9 },
+	'all four permanent upgrades must apply to every plane profile');
+
 console.log('fifth plane specialty regression test passed');

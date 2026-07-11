@@ -40,7 +40,10 @@ function uglifyTask() {
 	// var srcs = [paths.libs[0], paths.js[0]];
 	var srcs = [paths.libs[0],
 		'src/js/boot.js',
+		'src/js/progress.js',
 		'src/js/preloader.js',
+		'src/js/home.js',
+		'src/js/shop.js',
 		'src/js/menu.js',
 
 		'src/js/class/spriter.js',

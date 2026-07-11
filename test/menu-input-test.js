@@ -21,7 +21,8 @@ var context = {
 		CLASS_STATS: [{}, {}, {}, {}, {}],
 		PLAYER_COLORS: [
 			{ tint: 0xffffff },
-			{ tint: 0xff6666 }
+			{ tint: 0xff6666 },
+			{ id: 'gold', tint: 0xffcc33, price: 25, premium: true }
 		]
 	},
 	Phaser: { Keyboard: { W: 87 } },
@@ -87,4 +88,14 @@ context.window.localStorage = {
 menu.game = {};
 assert.strictEqual(menu.loadPlaneUnlock(), true, 'the menu must restore the permanent browser unlock');
 assert.strictEqual(menu.game.plane5Unlocked, true, 'the browser unlock must be mirrored in game memory');
+
+menu.progress = { colors: [] };
+menu.selectedPlayerColorIndex = 0;
+menu.updateColorTabs = function () {};
+menu.updateProfileList = function () {};
+assert.strictEqual(menu.selectPlayerColor(2), false, 'locked premium colors must reject selection');
+assert.strictEqual(menu.selectedPlayerColorIndex, 0, 'locked color selection must preserve the current color');
+menu.progress.colors.push('gold');
+assert.strictEqual(menu.selectPlayerColor(2), true, 'purchased premium colors must be selectable');
+assert.strictEqual(menu.selectedPlayerColorIndex, 2, 'purchased color selection must update the color index');
 console.log('menu input regression test passed');

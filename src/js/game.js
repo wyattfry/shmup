@@ -898,6 +898,8 @@
 
 		defeatMob: function (mob) {
 
+			var coinReward = mob.coinReward || 0;
+
 			if (mob instanceof window['firsttry'].Flagship) {
 				this.showPilotText(mob, 'NOOOOOOOOOO');
 			}
@@ -906,7 +908,9 @@
 			mob.die();
 			this.explode(mob);
 			this.score += mob.points;
-			this.coins += mob.coinReward || 0;
+			if (coinReward > 0) {
+				this.coins = window.firsttry.Progress.addCoins(this.game, coinReward);
+			}
 
 			if (window['firsttry'].Plane && mob instanceof window['firsttry'].Plane) {
 				this.recordPlaneKill();
@@ -944,18 +948,19 @@
 		restoreRunData: function () {
 
 			var runData = this.game.runData,
-					stat;
+					stat,
+					progress = window.firsttry.Progress.load(this.game);
 
 			if (!runData || !runData.resumeFlight) {
 				this.score = 0;
-				this.coins = 0;
+				this.coins = progress.coins;
 				this.planeKills = 0;
 				this.game.runData = null;
 				return;
 			}
 
 			this.score = runData.score || 0;
-			this.coins = runData.coins || 0;
+			this.coins = progress.coins;
 			this.planeKills = runData.planeKills || 0;
 			for (stat in runData.playerStats) {
 				if (runData.playerStats.hasOwnProperty(stat)) {
@@ -1169,7 +1174,9 @@
 
 		onInputDown: function () {
 
-			this.game.state.start('menu');
+			if (this.gameState === this.STATE.postplay) {
+				this.game.state.start('home');
+			}
 		},
 
 		shutdown: function () {

@@ -118,6 +118,24 @@ var CONFIG = {
 	},{
 		name: 							'Yellow',
 		tint: 							0xffdd66
+	},{
+		id: 								'gold',
+		name: 							'Gold',
+		tint: 							0xffcc33,
+		price: 						25,
+		premium: 					true
+	},{
+		id: 								'cyan',
+		name: 							'Cyan',
+		tint: 							0x33ffee,
+		price: 						40,
+		premium: 					true
+	},{
+		id: 								'shadow',
+		name: 							'Shadow',
+		tint: 							0x4b4b62,
+		price: 						60,
+		premium: 					true
 	}],
 
 	DEBUG: {
