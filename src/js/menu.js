@@ -13,6 +13,7 @@
 		this.colorSwatches = [];
 		this.colorPreview = null;
 		this.doneTxt = null;
+		this.skipTxt = null;
 		this.menuMode = 'class';
 		this.keys = null;
 		this.profileRowHeight = 128;
@@ -48,6 +49,12 @@
 			this.titleTxt.align = 'center';
 			this.titleTxt.x = this.game.width / 2 - this.titleTxt.textWidth / 2;
 			this.titleTxt.y = 24;
+
+			this.skipTxt = this.add.bitmapText(0, 18, 'minecraftia', 'SKIP');
+			this.skipTxt.scale.setTo(0.7, 0.7);
+			this.skipTxt.x = this.game.width - this.skipTxt.textWidth * this.skipTxt.scale.x - 18;
+			this.skipTxt.inputEnabled = true;
+			this.skipTxt.events.onInputDown.add(this.skipToGround, this);
 
 			this.startTxt = this.add.bitmapText(x, this.game.height - 124, 'minecraftia', 'Arrows / 1-4 : choose class\nW / click : color\nIn game: W shoot, E rocket');
 			this.startTxt.scale.setTo(0.7, 0.7);
@@ -290,6 +297,8 @@
 			}
 
 			this.menuMode = 'color';
+			this.skipTxt.visible = false;
+			this.skipTxt.inputEnabled = false;
 
 			for (i = 0; i < this.profileTxts.length; i++) {
 				this.profileTxts[i].visible = false;
@@ -319,6 +328,15 @@
 			this.game.selectedPlayerColorIndex = this.selectedPlayerColorIndex;
 			this.game.selectedPlayerColor = CONFIG.PLAYER_COLORS[this.selectedPlayerColorIndex].tint;
 			this.game.state.start('game');
+		},
+
+		skipToGround: function () {
+
+			this.game.runData = null;
+			this.game.selectedPlayerClass = this.selectedPlayerClass;
+			this.game.selectedPlayerColorIndex = this.selectedPlayerColorIndex;
+			this.game.selectedPlayerColor = CONFIG.PLAYER_COLORS[this.selectedPlayerColorIndex].tint;
+			this.game.state.start('ground');
 		}
 	};
 
