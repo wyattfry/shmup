@@ -20,7 +20,13 @@ var context = {
 		GROUND_HIT_IMMUNITY: 700,
 		GROUND_ACTIVE_ENEMIES: 3,
 		GROUND_ENEMY_SPAWN_DELAY: 1500,
-		GROUND_ENEMY_HEALTH: 2
+		GROUND_ENEMY_HEALTH: 2,
+		GROUND_WORLD_WIDTH: 3840,
+		GROUND_WORLD_HEIGHT: 4160,
+		GROUND_SWAMP_SPEED_FACTOR: 0.6,
+		GROUND_SPAWN_MIN_DISTANCE: 260,
+		GROUND_SPAWN_MAX_DISTANCE: 380,
+		GROUND_PLANE_REVEAL_DISTANCE: 300
 	},
 	Phaser: {},
 	window: {}
@@ -32,6 +38,11 @@ var GroundGame = context.window.firsttry.GroundGame;
 var state = new GroundGame();
 var bullets = [];
 var rockets = [];
+
+assert.strictEqual(state.getBiomeAt(100, 100), 'grassland', 'top-left ground region must be grassland');
+assert.strictEqual(state.getBiomeAt(3000, 100), 'forest', 'top-right ground region must be forest');
+assert.strictEqual(state.getBiomeAt(100, 3000), 'swamp', 'bottom-left ground region must be swamp');
+assert.strictEqual(state.getBiomeAt(3000, 3000), 'battlefield', 'bottom-right ground region must be battlefield');
 
 function projectile() {
 	return {
@@ -81,7 +92,30 @@ state.keys.w.isDown = true;
 state.keys.d.isDown = true;
 state.updatePlayerMovement();
 
-state.game = { time: { now: 1000 } };
+var swampState = new GroundGame();
+swampState.player = {
+	x: 100,
+	y: 3000,
+	angle: 0,
+	body: { velocity: { x: 0, y: 0 } }
+};
+swampState.keys = {
+	w: { isDown: false },
+	a: { isDown: false },
+	s: { isDown: false },
+	d: { isDown: true }
+};
+swampState.facing = { x: 0, y: -1 };
+swampState.updatePlayerMovement();
+assert.strictEqual(swampState.player.body.velocity.x, 84, 'swamp terrain must slow ground movement');
+
+state.game = {
+	time: { now: 1000 },
+	world: {
+		width: context.CONFIG.GROUND_WORLD_WIDTH,
+		height: context.CONFIG.GROUND_WORLD_HEIGHT
+	}
+};
 state.playerBulletPool = {
 	getFirstExists: function () {
 		var bullet = projectile();
@@ -210,6 +244,51 @@ spawnState.maintainEnemyCount();
 spawnState.game.time.now = 4500;
 spawnState.maintainEnemyCount();
 assert.strictEqual(livingEnemies, 3, 'no more than three hostile soldiers may be alive');
+
+var spawnedEnemy = {
+	reset: function (x, y) {
+		this.x = x;
+		this.y = y;
+		this.alive = true;
+	}
+};
+var randomValues = [0, 300, 800];
+var localSpawnState = new GroundGame();
+localSpawnState.player = { x: 1000, y: 1000 };
+localSpawnState.game = {
+	world: { width: 3840, height: 4160 },
+	time: { now: 0 }
+};
+localSpawnState.enemyPool = { getFirstExists: function () { return spawnedEnemy; } };
+localSpawnState.rnd = { integerInRange: function () { return randomValues.shift(); } };
+localSpawnState.spawnEnemy();
+var spawnDistance = Math.sqrt(
+	Math.pow(spawnedEnemy.x - localSpawnState.player.x, 2) +
+	Math.pow(spawnedEnemy.y - localSpawnState.player.y, 2)
+);
+assert.ok(spawnDistance >= context.CONFIG.GROUND_SPAWN_MIN_DISTANCE,
+	'enemies must not spawn directly beside the player');
+assert.ok(spawnDistance <= context.CONFIG.GROUND_SPAWN_MAX_DISTANCE,
+	'enemies must spawn near enough to keep combat active');
+assert.ok(spawnedEnemy.x > 0 && spawnedEnemy.x < localSpawnState.game.world.width,
+	'enemy spawn must stay inside horizontal world bounds');
+assert.ok(spawnedEnemy.y > 0 && spawnedEnemy.y < localSpawnState.game.world.height,
+	'enemy spawn must stay inside vertical world bounds');
+
+var revealState = new GroundGame();
+revealState.player = { x: 1000, y: 1000 };
+revealState.game = { world: { width: 3840, height: 4160 } };
+revealState.parkedPlane = { exists: false, visible: false, alive: false };
+revealState.messageText = { setText: function () {} };
+revealState.revealPlane();
+var planeDistance = Math.sqrt(
+	Math.pow(revealState.parkedPlane.x - revealState.player.x, 2) +
+	Math.pow(revealState.parkedPlane.y - revealState.player.y, 2)
+);
+assert.ok(planeDistance <= context.CONFIG.GROUND_PLANE_REVEAL_DISTANCE,
+	'the recovered plane must appear near the player');
+assert.ok(revealState.parkedPlane.x > 0 && revealState.parkedPlane.x < revealState.game.world.width,
+	'the recovered plane must stay inside world bounds');
 
 var enemyHealthState = new GroundGame();
 var enemy = {

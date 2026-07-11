@@ -44,13 +44,35 @@
 
 		createTextures: function () {
 
-			this.groundTexture = this.makeTexture(32, 32, function (ctx) {
+			this.biomeTextures = {};
+			this.biomeTextures.grassland = this.makeTexture(32, 32, function (ctx) {
 				ctx.fillStyle = '#426b3a';
 				ctx.fillRect(0, 0, 32, 32);
 				ctx.fillStyle = '#355c31';
 				ctx.fillRect(3, 5, 2, 2);
 				ctx.fillRect(22, 12, 2, 2);
 				ctx.fillRect(12, 25, 2, 2);
+			});
+			this.biomeTextures.forest = this.makeTexture(32, 32, function (ctx) {
+				ctx.fillStyle = '#263f28';
+				ctx.fillRect(0, 0, 32, 32);
+				ctx.fillStyle = '#172c1c';
+				ctx.fillRect(4, 7, 5, 4);
+				ctx.fillRect(21, 20, 6, 5);
+			});
+			this.biomeTextures.swamp = this.makeTexture(32, 32, function (ctx) {
+				ctx.fillStyle = '#45543a';
+				ctx.fillRect(0, 0, 32, 32);
+				ctx.fillStyle = '#283f3b';
+				ctx.fillRect(2, 5, 12, 5);
+				ctx.fillRect(18, 22, 11, 6);
+			});
+			this.biomeTextures.battlefield = this.makeTexture(32, 32, function (ctx) {
+				ctx.fillStyle = '#665d4b';
+				ctx.fillRect(0, 0, 32, 32);
+				ctx.fillStyle = '#39362f';
+				ctx.fillRect(3, 15, 12, 3);
+				ctx.fillRect(22, 4, 5, 5);
 			});
 			this.playerTexture = this.makeSoldierTexture('#315f9b', '#d8b48a', true);
 			this.enemyTexture = this.makeSoldierTexture('#8b3131', '#c99a72', false);
@@ -61,6 +83,19 @@
 				ctx.fillRect(2, 4, 20, 17);
 				ctx.fillStyle = '#365d30';
 				ctx.fillRect(5, 1, 14, 17);
+			});
+			this.swampObstacleTexture = this.makeTexture(28, 20, function (ctx) {
+				ctx.fillStyle = '#172a2a';
+				ctx.fillRect(1, 5, 26, 12);
+				ctx.fillStyle = '#36544b';
+				ctx.fillRect(5, 8, 18, 6);
+			});
+			this.rubbleTexture = this.makeTexture(26, 24, function (ctx) {
+				ctx.fillStyle = '#24231f';
+				ctx.fillRect(2, 14, 22, 7);
+				ctx.fillStyle = '#777064';
+				ctx.fillRect(4, 8, 8, 10);
+				ctx.fillRect(14, 4, 9, 14);
 			});
 			this.bulletTexture = this.makeTexture(4, 4, function (ctx) {
 				ctx.fillStyle = '#fff18a';
@@ -120,24 +155,47 @@
 
 			var width = CONFIG.GROUND_WORLD_WIDTH * CONFIG.PIXEL_RATIO,
 					height = CONFIG.GROUND_WORLD_HEIGHT * CONFIG.PIXEL_RATIO,
-					i,
-					tree;
+					halfWidth = width / 2,
+					halfHeight = height / 2;
 
-			this.add.tileSprite(0, 0, width, height, this.groundTexture);
+			this.add.tileSprite(0, 0, halfWidth, halfHeight, this.biomeTextures.grassland);
+			this.add.tileSprite(halfWidth, 0, halfWidth, halfHeight, this.biomeTextures.forest);
+			this.add.tileSprite(0, halfHeight, halfWidth, halfHeight, this.biomeTextures.swamp);
+			this.add.tileSprite(halfWidth, halfHeight, halfWidth, halfHeight, this.biomeTextures.battlefield);
 			this.obstacles = this.add.group();
 			this.obstacles.enableBody = true;
 			this.obstacles.physicsBodyType = Phaser.Physics.ARCADE;
 
-			for (i = 0; i < 22; i++) {
-				tree = this.obstacles.create(
-					this.rnd.integerInRange(40, width - 40),
-					this.rnd.integerInRange(60, height - 40),
-					this.treeTexture
+			this.addBiomeObstacles(20, 0, halfWidth, 0, halfHeight, this.treeTexture);
+			this.addBiomeObstacles(90, halfWidth, width, 0, halfHeight, this.treeTexture);
+			this.addBiomeObstacles(35, 0, halfWidth, halfHeight, height, this.swampObstacleTexture);
+			this.addBiomeObstacles(50, halfWidth, width, halfHeight, height, this.rubbleTexture);
+		},
+
+		addBiomeObstacles: function (count, minX, maxX, minY, maxY, texture) {
+
+			var i, obstacle, margin = 50 * CONFIG.PIXEL_RATIO;
+			for (i = 0; i < count; i++) {
+				obstacle = this.obstacles.create(
+					this.rnd.integerInRange(minX + margin, maxX - margin),
+					this.rnd.integerInRange(minY + margin, maxY - margin),
+					texture
 				);
-				tree.anchor.setTo(0.5, 0.5);
-				tree.scale.setTo(CONFIG.PIXEL_RATIO, CONFIG.PIXEL_RATIO);
-				tree.body.immovable = true;
+				obstacle.anchor.setTo(0.5, 0.5);
+				obstacle.scale.setTo(CONFIG.PIXEL_RATIO, CONFIG.PIXEL_RATIO);
+				obstacle.body.immovable = true;
 			}
+		},
+
+		getBiomeAt: function (x, y) {
+
+			var right = x >= CONFIG.GROUND_WORLD_WIDTH * CONFIG.PIXEL_RATIO / 2,
+					bottom = y >= CONFIG.GROUND_WORLD_HEIGHT * CONFIG.PIXEL_RATIO / 2;
+
+			if (bottom) {
+				return right ? 'battlefield' : 'swamp';
+			}
+			return right ? 'forest' : 'grassland';
 		},
 
 		createPlayer: function () {
@@ -300,6 +358,9 @@
 					this.player.angle = -90;
 				}
 			}
+			if (this.getBiomeAt(this.player.x, this.player.y) === 'swamp') {
+				speed *= CONFIG.GROUND_SWAMP_SPEED_FACTOR;
+			}
 
 			this.player.body.velocity.x = x * speed;
 			this.player.body.velocity.y = y * speed;
@@ -361,18 +422,21 @@
 		spawnEnemy: function () {
 
 			var enemy = this.enemyPool.getFirstExists(false),
-					side = this.rnd.integerInRange(0, 3),
-					margin = 35 * CONFIG.PIXEL_RATIO;
+					angle = this.rnd.integerInRange(0, 359) * Math.PI / 180,
+					distance = this.rnd.integerInRange(
+						CONFIG.GROUND_SPAWN_MIN_DISTANCE,
+						CONFIG.GROUND_SPAWN_MAX_DISTANCE
+					) * CONFIG.PIXEL_RATIO,
+					margin = 35 * CONFIG.PIXEL_RATIO,
+					x,
+					y;
 
 			if (!enemy) { return; }
-			if (side < 2) {
-				enemy.x = side === 0 ? margin : this.game.world.width - margin;
-				enemy.y = this.rnd.integerInRange(margin, this.game.world.height - margin);
-			} else {
-				enemy.x = this.rnd.integerInRange(margin, this.game.world.width - margin);
-				enemy.y = side === 2 ? margin : this.game.world.height - margin;
-			}
-			enemy.reset(enemy.x, enemy.y);
+			x = this.player.x + Math.cos(angle) * distance;
+			y = this.player.y + Math.sin(angle) * distance;
+			x = Math.max(margin, Math.min(this.game.world.width - margin, x));
+			y = Math.max(margin, Math.min(this.game.world.height - margin, y));
+			enemy.reset(x, y);
 			enemy.health = CONFIG.GROUND_ENEMY_HEALTH;
 			enemy.tint = 0xffffff;
 			enemy.nextShotAt = this.game.time.now + this.rnd.integerInRange(500, 1200);
@@ -520,7 +584,20 @@
 
 		revealPlane: function () {
 
+			var distance = CONFIG.GROUND_PLANE_REVEAL_DISTANCE * CONFIG.PIXEL_RATIO,
+					margin = 50 * CONFIG.PIXEL_RATIO,
+					x;
+
 			if (this.parkedPlane.exists) { return; }
+			x = this.player.x + distance;
+			if (x > this.game.world.width - margin) {
+				x = this.player.x - distance;
+			}
+			this.parkedPlane.x = Math.max(margin, Math.min(this.game.world.width - margin, x));
+			this.parkedPlane.y = Math.max(
+				margin,
+				Math.min(this.game.world.height - margin, this.player.y)
+			);
 			this.parkedPlane.exists = true;
 			this.parkedPlane.visible = true;
 			this.parkedPlane.alive = true;
